@@ -1,0 +1,3 @@
+[workspace]
+members = ["amana_escrow"]
+resolver = "2"
