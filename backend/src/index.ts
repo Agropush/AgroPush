@@ -32,10 +32,11 @@ if (process.env.NODE_ENV !== "production" && openapiSpec) {
     console.warn("OpenAPI spec could not be exported:", error);
   }
 
-  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
   app.get("/api/docs/openapi.json", (_req, res) => {
     res.json(openapiSpec);
   });
+
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 }
 
 app.get("/health", (_req, res) => {
