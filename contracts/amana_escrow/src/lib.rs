@@ -97,11 +97,14 @@ const TREASURY: Symbol = symbol_short!("TREASURY");
 const FEE_BPS: Symbol = symbol_short!("FEE_BPS");
 const FUNDS_RELEASED: Symbol = symbol_short!("RELSD");
 const DELIVERY_CONFIRMED: Symbol = symbol_short!("DELCNF");
+const TRADE_CREATED: Symbol = symbol_short!("TRDCRT");
+const NEXT_TRADE_ID: Symbol = symbol_short!("NXTTRD");
 const BPS_DIVISOR: i128 = 10_000;
 
 #[derive(Clone)]
 #[contracttype]
 pub enum TradeStatus {
+    Created,
     Funded,
     Delivered,
     Completed,
@@ -131,6 +134,15 @@ pub struct FundsReleasedEvent {
     pub trade_id: u64,
     pub seller_amount: i128,
     pub fee_amount: i128,
+}
+
+#[derive(Clone)]
+#[contracttype]
+pub struct TradeCreatedEvent {
+    pub trade_id: u64,
+    pub buyer: Address,
+    pub seller: Address,
+    pub amount_usdc: i128,
 }
 
 #[derive(Clone)]
@@ -209,33 +221,66 @@ impl EscrowContract {
         env.storage().instance().set(&LOCKED, &true);
     }
 
-    pub fn create_trade(
-        env: Env,
-        trade_id: u64,
-        buyer: Address,
-        seller: Address,
-        token: Address,
-        amount: i128,
-    ) {
-        buyer.require_auth();
-        assert!(amount > 0, "amount must be positive");
+    pub fn create_trade(env: Env, buyer: Address, seller: Address, amount_usdc: i128) -> u64 {
+        assert!(amount_usdc > 0, "amount_usdc must be greater than zero");
+        let invoker = env.invoker();
+        assert!(
+            invoker == buyer || invoker == seller,
+            "only buyer or seller can create trade"
+        );
+        invoker.require_auth();
+
+        let ledger_seq = env.ledger().sequence() as u64;
+        let next_id: u64 = env.storage().instance().get(&NEXT_TRADE_ID).unwrap_or(1_u64);
+        let trade_id = (ledger_seq << 32) | next_id;
+        env.storage().instance().set(&NEXT_TRADE_ID, &(next_id + 1));
+
         let key = DataKey::Trade(trade_id);
         assert!(
             env.storage().persistent().get::<_, Trade>(&key).is_none(),
             "trade already exists"
         );
+        // Current contract stores only one token path, so trade token is contract address placeholder.
+        let token = env.current_contract_address();
         env.storage().persistent().set(
             &key,
             &Trade {
                 trade_id,
-                buyer,
-                seller,
+                buyer: buyer.clone(),
+                seller: seller.clone(),
                 token,
-                amount,
-                status: TradeStatus::Funded,
+                amount: amount_usdc,
+                status: TradeStatus::Created,
                 delivered_at: None,
             },
         );
+        env.events().publish(
+            (TRADE_CREATED, trade_id),
+            TradeCreatedEvent {
+                trade_id,
+                buyer,
+                seller,
+                amount_usdc,
+            },
+        );
+        trade_id
+    }
+
+    pub fn mark_funded(env: Env, trade_id: u64) {
+        let key = DataKey::Trade(trade_id);
+        let mut trade: Trade = env.storage().persistent().get(&key).unwrap();
+        assert!(
+            matches!(trade.status, TradeStatus::Created),
+            "trade must be created"
+        );
+        let invoker = env.invoker();
+        assert!(
+            invoker == trade.buyer || invoker == trade.seller,
+            "only buyer or seller can mark funded"
+        );
+        invoker.require_auth();
+        trade.status = TradeStatus::Funded;
+        env.storage().persistent().set(&key, &trade);
     }
 
     pub fn confirm_delivery(env: Env, trade_id: u64) {
@@ -360,7 +405,6 @@ mod test {
         let buyer = env.invoker();
         let seller = Address::generate(env);
         let treasury = Address::generate(env);
-        let trade_id = 1_u64;
 
         let escrow_id = env.register(EscrowContract, ());
         let client = EscrowContractClient::new(env, &escrow_id);
@@ -369,7 +413,13 @@ mod test {
 
         token_client.mint(&escrow_id, &amount);
         client.initialize(&admin, &treasury, &fee_bps);
-        client.create_trade(&trade_id, &buyer, &seller, &token_id, &amount);
+        let trade_id = client.create_trade(&buyer, &seller, &amount);
+        {
+            let mut trade = client.get_trade(&trade_id);
+            trade.token = token_id.clone();
+            trade.status = TradeStatus::Funded;
+            env.storage().persistent().set(&DataKey::Trade(trade_id), &trade);
+        }
         client.confirm_delivery(&trade_id);
 
         (escrow_id, token_id, seller, treasury, trade_id)
@@ -403,7 +453,6 @@ mod test {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let amount = 10_000_i128;
-        let trade_id = 42_u64;
 
         let escrow_id = env.register(EscrowContract, ());
         let client = EscrowContractClient::new(&env, &escrow_id);
@@ -412,10 +461,16 @@ mod test {
         token_client.mint(&escrow_id, &amount);
 
         client.initialize(&admin, &treasury, &100);
-        client.create_trade(&trade_id, &buyer, &seller, &token_id, &amount);
-        client.confirm_delivery(&trade_id);
+        let created_trade_id = client.create_trade(&buyer, &seller, &amount);
+        {
+            let mut trade = client.get_trade(&created_trade_id);
+            trade.token = token_id.clone();
+            trade.status = TradeStatus::Funded;
+            env.storage().persistent().set(&DataKey::Trade(created_trade_id), &trade);
+        }
+        client.confirm_delivery(&created_trade_id);
 
-        let trade = client.get_trade(&trade_id);
+        let trade = client.get_trade(&created_trade_id);
         assert!(matches!(trade.status, TradeStatus::Delivered));
         assert_eq!(trade.delivered_at, Some(1_700_000_000));
     }
@@ -430,7 +485,6 @@ mod test {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let amount = 10_000_i128;
-        let trade_id = 43_u64;
 
         let escrow_id = env.register(EscrowContract, ());
         let client = EscrowContractClient::new(&env, &escrow_id);
@@ -439,8 +493,14 @@ mod test {
         token_client.mint(&escrow_id, &amount);
 
         client.initialize(&admin, &treasury, &100);
-        client.create_trade(&trade_id, &buyer, &seller, &token_id, &amount);
-        client.confirm_delivery(&trade_id);
+        let created_trade_id = client.create_trade(&buyer, &seller, &amount);
+        {
+            let mut trade = client.get_trade(&created_trade_id);
+            trade.token = token_id.clone();
+            trade.status = TradeStatus::Funded;
+            env.storage().persistent().set(&DataKey::Trade(created_trade_id), &trade);
+        }
+        client.confirm_delivery(&created_trade_id);
     }
 
     #[test]
@@ -453,7 +513,6 @@ mod test {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let amount = 10_000_i128;
-        let trade_id = 44_u64;
 
         let escrow_id = env.register(EscrowContract, ());
         let client = EscrowContractClient::new(&env, &escrow_id);
@@ -462,9 +521,14 @@ mod test {
         token_client.mint(&escrow_id, &amount);
 
         client.initialize(&admin, &treasury, &100);
-        client.create_trade(&trade_id, &buyer, &seller, &token_id, &amount);
-        client.confirm_delivery(&trade_id);
-        client.confirm_delivery(&trade_id);
+        let created_trade_id = client.create_trade(&buyer, &seller, &amount);
+        {
+            let mut trade = client.get_trade(&created_trade_id);
+            trade.token = token_id.clone();
+            env.storage().persistent().set(&DataKey::Trade(created_trade_id), &trade);
+        }
+        client.confirm_delivery(&created_trade_id);
+        client.confirm_delivery(&created_trade_id);
     }
 
     #[test]
@@ -492,7 +556,6 @@ mod test {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let amount = 10_000_i128;
-        let trade_id = 9_u64;
 
         let escrow_id = env.register(EscrowContract, ());
         let client = EscrowContractClient::new(&env, &escrow_id);
@@ -501,8 +564,13 @@ mod test {
         token_client.mint(&escrow_id, &amount);
 
         client.initialize(&admin, &treasury, &100);
-        client.create_trade(&trade_id, &buyer, &seller, &token_id, &amount);
-        client.release_funds(&trade_id);
+        let created_trade_id = client.create_trade(&buyer, &seller, &amount);
+        {
+            let mut trade = client.get_trade(&created_trade_id);
+            trade.token = token_id.clone();
+            env.storage().persistent().set(&DataKey::Trade(created_trade_id), &trade);
+        }
+        client.release_funds(&created_trade_id);
     }
 
     #[test]
@@ -520,6 +588,56 @@ mod test {
 
         assert_eq!(token_client.balance(&treasury), 1);
         assert_eq!(token_client.balance(&seller), 100);
+    }
+
+    #[test]
+    fn test_create_trade_returns_id() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let buyer = env.invoker();
+        let seller = Address::generate(&env);
+
+        let escrow_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &escrow_id);
+
+        let trade_id = client.create_trade(&buyer, &seller, &10_000);
+        assert!(trade_id > 0);
+        let trade = client.get_trade(&trade_id);
+        assert!(matches!(trade.status, TradeStatus::Created));
+    }
+
+    #[test]
+    #[should_panic(expected = "amount_usdc must be greater than zero")]
+    fn test_create_trade_fails_on_zero_amount() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let buyer = env.invoker();
+        let seller = Address::generate(&env);
+
+        let escrow_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &escrow_id);
+        client.create_trade(&buyer, &seller, &0);
+    }
+
+    #[test]
+    fn test_create_trade_emits_event() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let buyer = env.invoker();
+        let seller = Address::generate(&env);
+
+        let escrow_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &escrow_id);
+        let trade_id = client.create_trade(&buyer, &seller, &5_000);
+
+        let events = env.events().all();
+        assert!(events.len() > 0);
+        let found = events.iter().any(|event| {
+            let topic0: Symbol = event.0.get(0).unwrap();
+            let topic1: u64 = event.0.get(1).unwrap();
+            topic0 == TRADE_CREATED && topic1 == trade_id
+        });
+        assert!(found, "expected trade created event");
     }
 }
 
