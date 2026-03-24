@@ -133,7 +133,11 @@ export default function TradesPage() {
                     i % 2 === 0 ? "bg-bg-primary" : "bg-bg-card"
                   }`}
                 >
-                  <td className="px-4 py-3 text-gold font-mono">{trade.id}</td>
+                  <td className="px-4 py-3 text-gold font-mono">
+                    <Link href={`/trades/${trade.id}`} className="hover:underline underline-offset-4">
+                      {trade.id}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-text-secondary font-mono">{trade.counterparty}</td>
                   <td className="px-4 py-3 text-text-primary">{trade.asset}</td>
                   <td className="px-4 py-3 text-text-primary">{trade.amount}</td>
