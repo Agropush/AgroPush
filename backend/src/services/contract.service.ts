@@ -1,4 +1,5 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
+import { Trade } from "@prisma/client";
 
 const DEFAULT_RPC_URL = "https://soroban-testnet.stellar.org";
 const DEFAULT_TIMEOUT_SECONDS = 300;
@@ -16,18 +17,25 @@ export interface BuildCreateTradeTxResult {
   unsignedXdr: string;
 }
 
+export interface BuildDepositTxResult {
+  unsignedXdr: string;
+}
+
 export class ContractService {
   private readonly rpcServer: StellarSdk.rpc.Server;
   private readonly contractId: string;
+  private readonly usdcContractId: string;
   private readonly networkPassphrase: string;
 
   constructor(
     rpcUrl: string = process.env.STELLAR_RPC_URL || DEFAULT_RPC_URL,
     contractId: string = process.env.CONTRACT_ID || "",
+    usdcContractId: string = process.env.USDC_CONTRACT_ID || "",
     stellarNetwork: string = process.env.STELLAR_NETWORK || "TESTNET"
   ) {
     this.rpcServer = new StellarSdk.rpc.Server(rpcUrl);
     this.contractId = contractId;
+    this.usdcContractId = usdcContractId;
     this.networkPassphrase = this.resolveNetworkPassphrase(stellarNetwork);
   }
 
@@ -63,6 +71,42 @@ export class ContractService {
 
     return {
       tradeId,
+      unsignedXdr: preparedTransaction.toXDR(),
+    };
+  }
+
+  public async buildDepositTx(
+    trade: Pick<Trade, "tradeId" | "buyer" | "amountUsdc">
+  ): Promise<BuildDepositTxResult> {
+    if (!this.contractId) {
+      throw new Error("CONTRACT_ID is not configured");
+    }
+
+    if (!this.usdcContractId) {
+      throw new Error("USDC_CONTRACT_ID is not configured");
+    }
+
+    const account = await this.rpcServer.getAccount(trade.buyer);
+    const contract = new StellarSdk.Contract(this.contractId);
+
+    // The current escrow contract pulls the buyer's USDC during `deposit()`,
+    // so the prepared Soroban transaction is a single deposit invocation.
+    const transaction = new StellarSdk.TransactionBuilder(account, {
+      fee: StellarSdk.BASE_FEE,
+      networkPassphrase: this.networkPassphrase,
+    })
+      .addOperation(
+        contract.call(
+          "deposit",
+          StellarSdk.nativeToScVal(BigInt(trade.tradeId), { type: "u64" })
+        )
+      )
+      .setTimeout(DEFAULT_TIMEOUT_SECONDS)
+      .build();
+
+    const preparedTransaction = await this.rpcServer.prepareTransaction(transaction);
+
+    return {
       unsignedXdr: preparedTransaction.toXDR(),
     };
   }
