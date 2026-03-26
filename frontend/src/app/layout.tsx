@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Manrope } from "next/font/google";
+
 import "./globals.css";
+import { TopNav } from "@/components/TopNav";
 
 const geistSans = localFont({
   src: [
@@ -58,6 +60,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${geistSans.className} antialiased font-sans`}
       >
+        <TopNav title="Amana" networkStatus="testnet" />
         {children}
       </body>
     </html>
