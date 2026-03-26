@@ -9,6 +9,7 @@ import userRoutes from "./routes/user.routes";
 import { EventListenerService } from "./services/eventListener.service";
 import { tradeRoutes } from "./routes/trade.routes";
 import { walletRoutes } from "./routes/wallet.routes";
+import { authRoutes } from "./routes/auth.routes";
 
 import { env } from './config/env';\n\nenv; // Validate early
 
@@ -19,6 +20,7 @@ app.use(cors());
 app.use(express.json());
 app.use("/trades", tradeRoutes);
 app.use("/wallet", walletRoutes);
+app.use("/auth", authRoutes);
 
 const docsDir = path.join(__dirname, "docs");
 const openapiYamlPath = path.join(docsDir, "openapi.yaml");
