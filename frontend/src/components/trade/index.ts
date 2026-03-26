@@ -9,3 +9,4 @@ export { VaultSidebar } from "./VaultSidebar";
 export { ActionBar } from "./ActionBar";
 export { TimelineEventItem } from "./TimelineEventItem";
 export { TransactionTimeline } from "./TransactionTimeline";
+export { TradeAmountRow } from "./TradeAmountRow";
