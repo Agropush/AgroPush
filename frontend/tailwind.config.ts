@@ -87,6 +87,11 @@ const config: Config = {
           "system-ui",
           "sans-serif",
         ],
+        manrope: [
+          "var(--font-manrope)",
+          "Manrope",
+          "sans-serif",
+        ],
         mono: [
           "var(--font-geist-mono)",
           "Geist Mono",
