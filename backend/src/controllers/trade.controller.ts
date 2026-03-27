@@ -9,6 +9,7 @@ import {
   ContractService,
 } from "../services/contract.service";
 import { TradeAccessDeniedError, TradeService } from "../services/trade.service";
+import { appLogger } from "../middleware/logger";
 
 const CALLER_HEADER = "x-stellar-address";
 const AMOUNT_USDC_PATTERN = /^\d+(?:\.\d{1,7})?$/;
@@ -181,7 +182,7 @@ export class TradeController {
 
       return res.status(201).json({ tradeId, unsignedXdr });
     } catch (error) {
-      console.error("Trade creation failed:", error);
+      appLogger.error({ error }, "Trade creation failed");
       return res.status(500).json({ error: "Failed to create trade" });
     }
   };
@@ -229,7 +230,7 @@ export class TradeController {
         return res.status(403).json({ error: "Forbidden" });
       }
 
-      console.error("Deposit transaction build failed:", error);
+      appLogger.error({ error }, "Deposit transaction build failed");
       return res
         .status(500)
         .json({ error: "Failed to build deposit transaction" });
