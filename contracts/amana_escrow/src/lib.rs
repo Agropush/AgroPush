@@ -519,34 +519,54 @@ impl EscrowContract {
             .get(&DataKey::DisputeData(trade_id))
     }
 
-    /// Resolve a disputed trade. Only the registered mediator may call this.
+    /// Resolve a disputed trade with loss-sharing payouts.
+    /// Only the registered mediator may call this.
     ///
-    /// # Payout Math
+    /// # Payout Math with Loss-Sharing
     ///
     /// Given:
-    ///   - `total`            = total escrowed amount
-    ///   - `seller_payout_bps` = mediator's ruling in basis points (0–10_000)
-    ///   - `fee_bps`          = platform fee in basis points (e.g. 100 = 1%)
+    ///   - `total`              = total escrowed amount
+    ///   - `seller_gets_bps`    = mediator's ruling: what fraction seller deserves (0–10_000)
+    ///   - `buyer_loss_bps`     = buyer's share of any loss (from trade creation)
+    ///   - `seller_loss_bps`    = seller's share of any loss (from trade creation)
+    ///   - `fee_bps`            = platform fee in basis points (e.g. 100 = 1%)
     ///
-    /// Calculations:
-    ///   seller_raw   = total * seller_payout_bps / 10_000
-    ///   fee          = seller_raw * fee_bps / 10_000
-    ///   seller_net   = seller_raw - fee          (transferred to seller)
-    ///   buyer_refund = total - seller_raw         (transferred to buyer)
+    /// Step 1: Calculate the loss amount
+    ///   loss_bps = 10_000 - seller_gets_bps
+    ///   (e.g., if seller_gets_bps = 7_000, then loss_bps = 3_000 = 30% loss)
     ///
-    /// Example (total=10_000, seller_payout_bps=7_000, fee_bps=100):
-    ///   seller_raw   = 7_000
-    ///   fee          =    70
-    ///   seller_net   = 6_930  → seller
-    ///   buyer_refund = 3_000  → buyer
-    ///   treasury     =    70  → treasury
-    pub fn resolve_dispute(env: Env, trade_id: u64, seller_payout_bps: u32) {
+    /// Step 2: Distribute the loss according to agreed ratios
+    ///   buyer_loss_amount  = total * loss_bps * buyer_loss_bps  / (10_000 * 10_000)
+    ///   seller_loss_amount = total * loss_bps * seller_loss_bps / (10_000 * 10_000)
+    ///
+    /// Step 3: Calculate raw payouts
+    ///   seller_raw   = total - seller_loss_amount
+    ///   buyer_refund = total - seller_raw
+    ///
+    /// Step 4: Deduct platform fee from seller's portion only
+    ///   fee        = seller_raw * fee_bps / 10_000
+    ///   seller_net = seller_raw - fee
+    ///
+    /// Example (total=10_000, seller_gets_bps=7_000, buyer_loss_bps=6_000, 
+    ///          seller_loss_bps=4_000, fee_bps=100):
+    ///   loss_bps         = 3_000 (30% loss)
+    ///   buyer_loss       = 10_000 * 3_000 * 6_000 / 100_000_000 = 1_800
+    ///   seller_loss      = 10_000 * 3_000 * 4_000 / 100_000_000 = 1_200
+    ///   seller_raw       = 10_000 - 1_200 = 8_800
+    ///   buyer_refund     = 10_000 - 8_800 = 1_200
+    ///   fee              = 8_800 * 100 / 10_000 = 88
+    ///   seller_net       = 8_800 - 88 = 8_712  → seller
+    ///   buyer_refund     = 1_200                → buyer
+    ///   treasury         = 88                   → treasury
+    ///
+    /// Verification: 8_712 + 1_200 + 88 = 10_000 ✓
+    pub fn resolve_dispute(env: Env, trade_id: u64, seller_gets_bps: u32) {
         // 1. Verify caller is the registered mediator
         let mediator = Self::require_mediator(&env);
 
         assert!(
-            seller_payout_bps <= BPS_DIVISOR as u32,
-            "seller_payout_bps must be <= 10_000"
+            seller_gets_bps <= BPS_DIVISOR as u32,
+            "seller_gets_bps must be <= 10_000"
         );
 
         // 2. Load and validate trade
@@ -561,12 +581,23 @@ impl EscrowContract {
         let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0);
         let treasury: Address = env.storage().instance().get(&DataKey::Treasury).expect("Treasury not set");
 
-        // 4. Payout math
+        // 4. Payout math with loss-sharing
         let total = trade.amount;
-        let seller_raw = total * (seller_payout_bps as i128) / BPS_DIVISOR;
-        let fee = seller_raw * (fee_bps as i128) / BPS_DIVISOR;
-        let seller_net = seller_raw - fee;
+        
+        // Calculate the loss amount in basis points
+        let loss_bps = BPS_DIVISOR - (seller_gets_bps as i128);
+        
+        // Distribute loss according to agreed ratios
+        // seller_loss = total * loss_bps * seller_loss_bps / (10_000 * 10_000)
+        let seller_loss_amount = (total * loss_bps * (trade.seller_loss_bps as i128)) / (BPS_DIVISOR * BPS_DIVISOR);
+        
+        // Calculate raw payouts
+        let seller_raw = total - seller_loss_amount;
         let buyer_refund = total - seller_raw;
+        
+        // Deduct platform fee from seller's portion only
+        let fee = (seller_raw * (fee_bps as i128)) / BPS_DIVISOR;
+        let seller_net = seller_raw - fee;
 
         // 5. Execute three atomic transfers
         let token_client = token::Client::new(&env, &trade.token);
@@ -1021,13 +1052,16 @@ mod test {
     // Dispute resolution tests
     // -----------------------------------------------------------------------
 
-    /// 50/50 split: seller gets 5_000 bps (50%), fee = 1% on seller portion.
+    /// 50/50 split with 50/50 loss-sharing: seller gets 5_000 bps (50%), fee = 1% on seller portion.
     ///
-    /// total = 10_000, seller_payout_bps = 5_000, fee_bps = 100
-    ///   seller_raw   = 10_000 * 5_000 / 10_000 = 5_000
-    ///   fee          =  5_000 *   100 / 10_000 =    50
-    ///   seller_net   =  5_000 -    50          = 4_950
-    ///   buyer_refund = 10_000 -  5_000         = 5_000
+    /// With loss-sharing ratios (buyer_loss_bps=5000, seller_loss_bps=5000):
+    /// total = 10_000, seller_gets_bps = 5_000, fee_bps = 100
+    ///   loss_bps         = 10_000 - 5_000 = 5_000 (50% loss)
+    ///   seller_loss      = 10_000 * 5_000 * 5_000 / 100_000_000 = 2_500
+    ///   seller_raw       = 10_000 - 2_500 = 7_500
+    ///   fee              = 7_500 * 100 / 10_000 = 75
+    ///   seller_net       = 7_500 - 75 = 7_425
+    ///   buyer_refund     = 10_000 - 7_500 = 2_500
     #[test]
     fn test_resolve_50_50_split_calculates_correctly() {
         let env = Env::default();
@@ -1044,9 +1078,9 @@ mod test {
         client.resolve_dispute(&trade_id, &5_000_u32);
 
         let token = token::Client::new(&env, &usdc_id);
-        assert_eq!(token.balance(&seller), 4_950, "seller_net mismatch");
-        assert_eq!(token.balance(&treasury), 50, "fee mismatch");
-        assert_eq!(token.balance(&buyer), 5_000, "buyer_refund mismatch");
+        assert_eq!(token.balance(&seller), 7_425, "seller_net mismatch");
+        assert_eq!(token.balance(&treasury), 75, "fee mismatch");
+        assert_eq!(token.balance(&buyer), 2_500, "buyer_refund mismatch");
         assert_eq!(token.balance(&client.address), 0, "escrow should be empty");
         assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Completed));
     }
@@ -1080,13 +1114,16 @@ mod test {
         assert_eq!(token.balance(&client.address), 0);
     }
 
-    /// Full buyer refund: seller gets 0 bps (0%), buyer gets everything back.
+    /// Full buyer refund with 50/50 loss-sharing: seller gets 0 bps (0%), buyer gets everything back.
     ///
-    /// total = 10_000, seller_payout_bps = 0, fee_bps = 100
-    ///   seller_raw   =     0
-    ///   fee          =     0
-    ///   seller_net   =     0
-    ///   buyer_refund = 10_000
+    /// With loss-sharing ratios (buyer_loss_bps=5000, seller_loss_bps=5000):
+    /// total = 10_000, seller_gets_bps = 0, fee_bps = 100
+    ///   loss_bps         = 10_000 - 0 = 10_000 (100% loss)
+    ///   seller_loss      = 10_000 * 10_000 * 5_000 / 100_000_000 = 5_000
+    ///   seller_raw       = 10_000 - 5_000 = 5_000
+    ///   fee              = 5_000 * 100 / 10_000 = 50
+    ///   seller_net       = 5_000 - 50 = 4_950
+    ///   buyer_refund     = 10_000 - 5_000 = 5_000
     #[test]
     fn test_resolve_full_buyer_refund() {
         let env = Env::default();
@@ -1103,9 +1140,9 @@ mod test {
         client.resolve_dispute(&trade_id, &0_u32);
 
         let token = token::Client::new(&env, &usdc_id);
-        assert_eq!(token.balance(&buyer), 10_000, "buyer_refund mismatch");
-        assert_eq!(token.balance(&seller), 0, "seller should receive nothing");
-        assert_eq!(token.balance(&treasury), 0, "no fee on zero seller payout");
+        assert_eq!(token.balance(&buyer), 5_000, "buyer_refund mismatch");
+        assert_eq!(token.balance(&seller), 4_950, "seller should receive their share minus fee");
+        assert_eq!(token.balance(&treasury), 50, "fee on seller's portion");
         assert_eq!(token.balance(&client.address), 0);
     }
 
@@ -1144,6 +1181,237 @@ mod test {
                 },
             }])
             .resolve_dispute(&trade_id, &5_000_u32);
+    }
+
+    // -----------------------------------------------------------------------
+    // Additional loss-sharing dispute resolution tests
+    // -----------------------------------------------------------------------
+
+    /// Test 70/30 loss-sharing with 60% seller ruling
+    /// buyer_loss_bps=7000 (buyer bears 70% of loss), seller_loss_bps=3000
+    /// seller_gets_bps=6000 (mediator rules 60% for seller, 40% loss)
+    ///
+    /// Calculation:
+    ///   total = 10_000, loss = 40% = 4_000
+    ///   seller_loss = 4_000 * 30% = 1_200
+    ///   buyer_loss = 4_000 * 70% = 2_800
+    ///   seller_raw = 10_000 - 1_200 = 8_800
+    ///   fee = 8_800 * 1% = 88
+    ///   seller_net = 8_712
+    ///   buyer_refund = 1_200
+    #[test]
+    fn test_resolve_with_70_30_loss_sharing() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let buyer = Address::generate(&env);
+        let seller = Address::generate(&env);
+        let treasury = Address::generate(&env);
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        
+        client.initialize(&admin, &usdc_id, &treasury, &100);
+        
+        let amount = 10_000_i128;
+        let token_client = token::StellarAssetClient::new(&env, &usdc_id);
+        token_client.mint(&buyer, &amount);
+        
+        // Create trade with 70/30 loss-sharing (buyer bears 70% of loss)
+        let trade_id = client.create_trade(&buyer, &seller, &amount, &7000_u32, &3000_u32);
+        client.deposit(&trade_id);
+        client.raise_dispute(&trade_id, &buyer);
+        
+        let mediator = Address::generate(&env);
+        client.set_mediator(&mediator);
+        
+        // Mediator rules 60% for seller (40% loss)
+        client.resolve_dispute(&trade_id, &6_000_u32);
+        
+        let token = token::Client::new(&env, &usdc_id);
+        assert_eq!(token.balance(&seller), 8_712, "seller_net with 70/30 loss-sharing");
+        assert_eq!(token.balance(&treasury), 88, "fee on seller portion");
+        assert_eq!(token.balance(&buyer), 1_200, "buyer_refund with 70/30 loss-sharing");
+        assert_eq!(token.balance(&client.address), 0);
+    }
+
+    /// Test 100/0 loss-sharing (buyer bears all loss) with 80% seller ruling
+    /// buyer_loss_bps=10000, seller_loss_bps=0
+    /// seller_gets_bps=8000 (mediator rules 80% for seller, 20% loss)
+    ///
+    /// Calculation:
+    ///   total = 10_000, loss = 20% = 2_000
+    ///   seller_loss = 2_000 * 0% = 0
+    ///   buyer_loss = 2_000 * 100% = 2_000
+    ///   seller_raw = 10_000 - 0 = 10_000
+    ///   fee = 10_000 * 1% = 100
+    ///   seller_net = 9_900
+    ///   buyer_refund = 0
+    #[test]
+    fn test_resolve_buyer_bears_all_loss() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let buyer = Address::generate(&env);
+        let seller = Address::generate(&env);
+        let treasury = Address::generate(&env);
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        
+        client.initialize(&admin, &usdc_id, &treasury, &100);
+        
+        let amount = 10_000_i128;
+        let token_client = token::StellarAssetClient::new(&env, &usdc_id);
+        token_client.mint(&buyer, &amount);
+        
+        // Buyer bears all loss (100/0)
+        let trade_id = client.create_trade(&buyer, &seller, &amount, &10000_u32, &0_u32);
+        client.deposit(&trade_id);
+        client.raise_dispute(&trade_id, &seller);
+        
+        let mediator = Address::generate(&env);
+        client.set_mediator(&mediator);
+        
+        // Mediator rules 80% for seller
+        client.resolve_dispute(&trade_id, &8_000_u32);
+        
+        let token = token::Client::new(&env, &usdc_id);
+        assert_eq!(token.balance(&seller), 9_900, "seller gets full amount minus fee");
+        assert_eq!(token.balance(&treasury), 100, "fee on full seller amount");
+        assert_eq!(token.balance(&buyer), 0, "buyer gets nothing when bearing all loss");
+        assert_eq!(token.balance(&client.address), 0);
+    }
+
+    /// Test 0/100 loss-sharing (seller bears all loss) with 30% seller ruling
+    /// buyer_loss_bps=0, seller_loss_bps=10000
+    /// seller_gets_bps=3000 (mediator rules 30% for seller, 70% loss)
+    ///
+    /// Calculation:
+    ///   total = 10_000, loss = 70% = 7_000
+    ///   seller_loss = 7_000 * 100% = 7_000
+    ///   buyer_loss = 7_000 * 0% = 0
+    ///   seller_raw = 10_000 - 7_000 = 3_000
+    ///   fee = 3_000 * 1% = 30
+    ///   seller_net = 2_970
+    ///   buyer_refund = 7_000
+    #[test]
+    fn test_resolve_seller_bears_all_loss() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let buyer = Address::generate(&env);
+        let seller = Address::generate(&env);
+        let treasury = Address::generate(&env);
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        
+        client.initialize(&admin, &usdc_id, &treasury, &100);
+        
+        let amount = 10_000_i128;
+        let token_client = token::StellarAssetClient::new(&env, &usdc_id);
+        token_client.mint(&buyer, &amount);
+        
+        // Seller bears all loss (0/100)
+        let trade_id = client.create_trade(&buyer, &seller, &amount, &0_u32, &10000_u32);
+        client.deposit(&trade_id);
+        client.raise_dispute(&trade_id, &buyer);
+        
+        let mediator = Address::generate(&env);
+        client.set_mediator(&mediator);
+        
+        // Mediator rules 30% for seller (70% loss)
+        client.resolve_dispute(&trade_id, &3_000_u32);
+        
+        let token = token::Client::new(&env, &usdc_id);
+        assert_eq!(token.balance(&seller), 2_970, "seller bears all loss");
+        assert_eq!(token.balance(&treasury), 30, "fee on seller portion");
+        assert_eq!(token.balance(&buyer), 7_000, "buyer gets most back when seller bears all loss");
+        assert_eq!(token.balance(&client.address), 0);
+    }
+
+    /// Test 20/80 loss-sharing with 90% seller ruling (small loss)
+    /// buyer_loss_bps=2000, seller_loss_bps=8000
+    /// seller_gets_bps=9000 (mediator rules 90% for seller, 10% loss)
+    ///
+    /// Calculation:
+    ///   total = 10_000, loss = 10% = 1_000
+    ///   seller_loss = 1_000 * 80% = 800
+    ///   buyer_loss = 1_000 * 20% = 200
+    ///   seller_raw = 10_000 - 800 = 9_200
+    ///   fee = 9_200 * 1% = 92
+    ///   seller_net = 9_108
+    ///   buyer_refund = 800
+    #[test]
+    fn test_resolve_with_small_loss_20_80_sharing() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let buyer = Address::generate(&env);
+        let seller = Address::generate(&env);
+        let treasury = Address::generate(&env);
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        
+        client.initialize(&admin, &usdc_id, &treasury, &100);
+        
+        let amount = 10_000_i128;
+        let token_client = token::StellarAssetClient::new(&env, &usdc_id);
+        token_client.mint(&buyer, &amount);
+        
+        // 20/80 loss-sharing (seller bears 80% of loss)
+        let trade_id = client.create_trade(&buyer, &seller, &amount, &2000_u32, &8000_u32);
+        client.deposit(&trade_id);
+        client.raise_dispute(&trade_id, &seller);
+        
+        let mediator = Address::generate(&env);
+        client.set_mediator(&mediator);
+        
+        // Mediator rules 90% for seller (small 10% loss)
+        client.resolve_dispute(&trade_id, &9_000_u32);
+        
+        let token = token::Client::new(&env, &usdc_id);
+        assert_eq!(token.balance(&seller), 9_108, "seller with small loss");
+        assert_eq!(token.balance(&treasury), 92, "fee on seller portion");
+        assert_eq!(token.balance(&buyer), 800, "buyer refund with small loss");
+        assert_eq!(token.balance(&client.address), 0);
+    }
+
+    /// Test edge case: 50/50 loss-sharing with 100% seller ruling (no loss)
+    /// buyer_loss_bps=5000, seller_loss_bps=5000
+    /// seller_gets_bps=10000 (mediator rules 100% for seller, 0% loss)
+    ///
+    /// Calculation:
+    ///   total = 10_000, loss = 0% = 0
+    ///   seller_loss = 0 * 50% = 0
+    ///   buyer_loss = 0 * 50% = 0
+    ///   seller_raw = 10_000 - 0 = 10_000
+    ///   fee = 10_000 * 1% = 100
+    ///   seller_net = 9_900
+    ///   buyer_refund = 0
+    #[test]
+    fn test_resolve_no_loss_full_seller_payout() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let amount = 10_000_i128;
+        let fee_bps = 100_u32;
+        let (contract_id, usdc_id, buyer, seller, treasury, trade_id) =
+            setup_disputed_trade(&env, amount, fee_bps);
+
+        let mediator = Address::generate(&env);
+        let client = EscrowContractClient::new(&env, &contract_id);
+        client.set_mediator(&mediator);
+
+        // Mediator rules 100% for seller (no loss)
+        client.resolve_dispute(&trade_id, &10_000_u32);
+
+        let token = token::Client::new(&env, &usdc_id);
+        assert_eq!(token.balance(&seller), 9_900, "seller gets full amount minus fee");
+        assert_eq!(token.balance(&treasury), 100, "fee on full amount");
+        assert_eq!(token.balance(&buyer), 0, "buyer gets nothing when no loss");
+        assert_eq!(token.balance(&client.address), 0);
     }
 
     // -----------------------------------------------------------------------
@@ -1631,9 +1899,14 @@ mod integration_tests {
         assert!(matches!(trade.status, TradeStatus::Completed), "Step 6: must be Completed");
         assert_eq!(trade.updated_at, 5_000);
 
-        assert_eq!(token.balance(&s.seller),      4_950, "seller_net mismatch");
-        assert_eq!(token.balance(&s.treasury),       50, "fee mismatch");
-        assert_eq!(token.balance(&s.buyer),         5_000, "buyer_refund mismatch");
+        // With 50/50 loss-sharing and 50/50 mediator ruling:
+        // loss = 50%, seller bears 50% of loss = 2,500
+        // seller_raw = 10,000 - 2,500 = 7,500
+        // fee = 75, seller_net = 7,425
+        // buyer_refund = 2,500
+        assert_eq!(token.balance(&s.seller),      7_425, "seller_net mismatch");
+        assert_eq!(token.balance(&s.treasury),       75, "fee mismatch");
+        assert_eq!(token.balance(&s.buyer),       2_500, "buyer_refund mismatch");
         assert_eq!(token.balance(&s.contract_id),      0, "escrow must be empty");
     }
 
@@ -1683,11 +1956,14 @@ mod integration_tests {
     }
 
     // -----------------------------------------------------------------------
-    // Integration test 3: Full lifecycle — full buyer refund
+    // Integration test 3: Full lifecycle — full buyer refund (duplicate)
     //
-    //   total = 10_000, seller_payout_bps = 0 (0%), fee_bps = 100
-    //   seller_net   =      0  (no fee either — nothing to charge)
-    //   buyer_refund = 10_000  → buyer gets everything back
+    // With 50/50 loss-sharing and seller_gets_bps = 0:
+    //   total = 10_000, seller_gets_bps = 0 (0%), fee_bps = 100
+    //   loss = 100%, seller bears 50% = 5,000
+    //   seller_raw = 10,000 - 5,000 = 5,000
+    //   fee = 50, seller_net = 4,950
+    //   buyer_refund = 5,000
     // -----------------------------------------------------------------------
     #[test]
     fn test_integration_full_lifecycle_full_buyer_refund() {
@@ -1705,10 +1981,10 @@ mod integration_tests {
 
         client.resolve_dispute(&trade_id, &0_u32);
 
-        assert_eq!(token.balance(&s.buyer),        10_000);
-        assert_eq!(token.balance(&s.seller),             0);
-        assert_eq!(token.balance(&s.treasury),           0);
-        assert_eq!(token.balance(&s.contract_id),        0);
+        assert_eq!(token.balance(&s.buyer),         5_000);
+        assert_eq!(token.balance(&s.seller),        4_950);
+        assert_eq!(token.balance(&s.treasury),         50);
+        assert_eq!(token.balance(&s.contract_id),       0);
     }
 
     // -----------------------------------------------------------------------
