@@ -13,7 +13,7 @@ export function createApp(): express.Application {
   app.use(express.json());
   app.use(loggerMiddleware);
   app.get("/health", (req, res) => {
-    appLogger.info({ path: req.path }, 'Health check');
+    appLogger.info({ path: req.url }, 'Health check');
     res.status(200).json({
       status: "ok",
       service: "amana-backend",

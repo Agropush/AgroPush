@@ -1,10 +1,10 @@
-import express, { type Application } from "express";
-import request from "supertest";
-import { createApp } from "../app";
-import { errorHandler } from "../middleware/errorHandler";
+import request from 'supertest';
+import express from 'express';
+import { createApp } from '../app';
+import { errorHandler } from '../middleware/errorHandler';
 
-describe("App Bootstrap", () => {
-  let app: Application;
+describe('App Bootstrap', () => {
+  let app: express.Application;
 
   beforeAll(() => {
     app = createApp();
@@ -20,16 +20,16 @@ describe("App Bootstrap", () => {
     expect(res.body.timestamp).toBeDefined();
   });
 
-  it("should handle errors with structured JSON", async () => {
+  it('should handle errors with structured JSON', async () => {
     const testApp = express();
-    testApp.get("/test-error", () => {
-      const err = new Error("Test error");
-      (err as Error & { status?: number }).status = 400;
-      throw err;
+    testApp.get('/test-error', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const err = new Error('Test error');
+      (err as any).status = 400;
+      next(err);
     });
     testApp.use(errorHandler);
 
-    const res = await request(testApp).get("/test-error");
+    const res = await request(testApp).get('/test-error');
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("error", true);
     expect(res.body).toHaveProperty("status", 400);
