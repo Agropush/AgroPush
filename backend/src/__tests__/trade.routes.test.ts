@@ -20,7 +20,7 @@ describe("Trade Routes", () => {
   let sellerToken: string;
 
   beforeAll(() => {
-    const secret = process.env.JWT_SECRET || "default_secret";
+    const secret = process.env.JWT_SECRET!;
     token = jwt.sign({ walletAddress: buyerAddress }, secret);
     sellerToken = jwt.sign({ walletAddress: sellerAddress }, secret);
   });
@@ -44,6 +44,8 @@ describe("Trade Routes", () => {
       .send({
         sellerAddress,
         amountUsdc: "125.1234567",
+        buyerLossBps: 5000,
+        sellerLossBps: 5000,
       });
 
     expect(res.status).toBe(201);
@@ -55,12 +57,16 @@ describe("Trade Routes", () => {
       buyerAddress,
       sellerAddress,
       amountUsdc: "125.1234567",
+      buyerLossBps: 5000,
+      sellerLossBps: 5000,
     });
     expect(TradeService.prototype.createPendingTrade).toHaveBeenCalledWith({
       tradeId: "4294967297",
-      buyer: buyerAddress,
-      seller: sellerAddress,
+      buyerAddress,
+      sellerAddress,
       amountUsdc: "125.1234567",
+      buyerLossBps: 5000,
+      sellerLossBps: 5000,
     });
   });
 
@@ -90,8 +96,8 @@ describe("Trade Routes", () => {
   it("returns unsignedXdr for a valid buyer deposit request", async () => {
     (TradeService.prototype.getTradeById as jest.Mock).mockResolvedValue({
       tradeId: "4294967297",
-      buyer: buyerAddress,
-      seller: sellerAddress,
+      buyerAddress,
+      sellerAddress,
       amountUsdc: "125.1234567",
       status: "CREATED",
     });
@@ -114,7 +120,7 @@ describe("Trade Routes", () => {
     expect(ContractService.prototype.buildDepositTx).toHaveBeenCalledWith(
       expect.objectContaining({
         tradeId: "4294967297",
-        buyer: buyerAddress,
+        buyerAddress,
       })
     );
   });
@@ -122,8 +128,8 @@ describe("Trade Routes", () => {
   it("returns 403 if the caller is the seller", async () => {
     (TradeService.prototype.getTradeById as jest.Mock).mockResolvedValue({
       tradeId: "4294967297",
-      buyer: buyerAddress,
-      seller: sellerAddress,
+      buyerAddress,
+      sellerAddress,
       amountUsdc: "125.1234567",
       status: "CREATED",
     });
@@ -139,8 +145,8 @@ describe("Trade Routes", () => {
   it("returns 400 if the trade is already funded", async () => {
     (TradeService.prototype.getTradeById as jest.Mock).mockResolvedValue({
       tradeId: "4294967297",
-      buyer: buyerAddress,
-      seller: sellerAddress,
+      buyerAddress,
+      sellerAddress,
       amountUsdc: "125.1234567",
       status: "FUNDED",
     });

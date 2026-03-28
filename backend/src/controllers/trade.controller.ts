@@ -1,6 +1,6 @@
 import { TradeStatus } from "@prisma/client";
 import * as StellarSdk from "@stellar/stellar-sdk";
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware";
 import {
   buildConfirmDeliveryTx,
@@ -10,7 +10,6 @@ import {
 import { appLogger } from "../middleware/logger";
 import { TradeAccessDeniedError, TradeService, DisputeTradeStatusError } from "../services/trade.service";
 
-const CALLER_HEADER = "x-stellar-address";
 const AMOUNT_USDC_PATTERN = /^\d+(?:\.\d{1,7})?$/;
 
 interface CreateTradeBody {
@@ -18,17 +17,6 @@ interface CreateTradeBody {
   amountUsdc?: unknown;
   buyerLossBps?: unknown;
   sellerLossBps?: unknown;
-}
-
-export function getCallerStellarAddress(req: Request): string | undefined {
-  const raw = req.headers[CALLER_HEADER];
-  if (typeof raw === "string" && raw.trim().length > 0) {
-    return raw.trim();
-  }
-  if (Array.isArray(raw) && raw[0]) {
-    return String(raw[0]).trim();
-  }
-  return undefined;
 }
 
 function parseAdminPubkeys(): Set<string> {
@@ -151,7 +139,7 @@ export class TradeController {
         return res.status(404).json({ error: "Trade not found" });
       }
 
-      if (trade.buyer !== callerAddress) {
+      if (trade.buyerAddress !== callerAddress) {
         return res.status(403).json({ error: "Forbidden" });
       }
 
@@ -176,13 +164,13 @@ export class TradeController {
   };
 
   public confirmDelivery = async (
-    req: Request,
+    req: AuthRequest,
     res: Response,
   ): Promise<void> => {
     const id = String(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
-    const caller = getCallerStellarAddress(req);
+    const caller = req.user?.walletAddress?.trim();
     if (!caller) {
-      res.status(401).json({ error: "Missing X-Stellar-Address header" });
+      res.status(401).json({ error: "Unauthorized" });
       return;
     }
 
@@ -218,13 +206,13 @@ export class TradeController {
   };
 
   public releaseFunds = async (
-    req: Request,
+    req: AuthRequest,
     res: Response,
   ): Promise<void> => {
     const id = String(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
-    const caller = getCallerStellarAddress(req);
+    const caller = req.user?.walletAddress?.trim();
     if (!caller) {
-      res.status(401).json({ error: "Missing X-Stellar-Address header" });
+      res.status(401).json({ error: "Unauthorized" });
       return;
     }
 

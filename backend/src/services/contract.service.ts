@@ -1,6 +1,5 @@
 import { Trade } from "@prisma/client";
 import * as StellarSdk from "@stellar/stellar-sdk";
-import type { TradeRecord } from "../types/trade";
 import { env } from "../config/env";
 
 const DEFAULT_RPC_URL = "https://soroban-testnet.stellar.org";

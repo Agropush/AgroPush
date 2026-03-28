@@ -1,6 +1,9 @@
-import { prisma } from '../lib/db';
+import { prisma } from "../lib/db";
 
-describe('Database Operations', () => {
+/** Integration tests: set RUN_DATABASE_TESTS=1 and a valid DATABASE_URL. */
+const runDb = process.env.RUN_DATABASE_TESTS === "1";
+
+(runDb ? describe : describe.skip)("Database Operations", () => {
   // Clear database before each test
   beforeEach(async () => {
     await prisma.dispute.deleteMany({});
