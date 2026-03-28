@@ -1,25 +1,27 @@
-import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import fs from "fs";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
-import { PrismaClient } from "@prisma/client";
+import cors from "cors";
+import { prisma } from "./lib/db";
+import userRoutes from "./routes/user.routes";
 import { EventListenerService } from "./services/eventListener.service";
+import { createTradeRouter } from "./routes/trade.routes";
 import { walletRoutes } from "./routes/wallet.routes";
+import { authRoutes } from "./routes/auth.routes";
+import { createManifestRouter } from "./routes/manifest.routes";
+import { createEvidenceRouter } from "./routes/evidence.routes";
+import { createAuditTrailRouter } from "./routes/auditTrail.routes";
+import { createApp } from "./app";
+import { env } from "./config/env";
+import { appLogger } from "./middleware/logger";
 
-dotenv.config();
+env; // Validate early
 
-const app = express();
+const app = createApp();
 const port = Number(process.env.PORT || 4000);
-const prisma = new PrismaClient();
-
-app.use(cors());
-app.use(express.json());
-app.use("/trades", createTradeRouter(prisma));
-
-app.use("/wallet", walletRoutes);
 
 const docsDir = path.join(__dirname, "docs");
 const openapiYamlPath = path.join(docsDir, "openapi.yaml");
@@ -29,14 +31,14 @@ let openapiSpec: unknown = null;
 try {
   openapiSpec = YAML.load(openapiYamlPath);
 } catch (error) {
-  console.warn("OpenAPI spec could not be loaded:", error);
+  appLogger.warn({ error }, "OpenAPI spec could not be loaded");
 }
 
 if (process.env.NODE_ENV !== "production" && openapiSpec) {
   try {
     fs.writeFileSync(openapiJsonPath, JSON.stringify(openapiSpec, null, 2));
   } catch (error) {
-    console.warn("OpenAPI spec could not be exported:", error);
+    appLogger.warn({ error }, "OpenAPI spec could not be exported");
   }
 
   app.get("/api/docs/openapi.json", (_req, res) => {
@@ -48,30 +50,21 @@ if (process.env.NODE_ENV !== "production" && openapiSpec) {
 
 app.use("/users", userRoutes);
 
-app.get("/health", (_req, res) => {
-  res.status(200).json({
-    status: "ok",
-    service: "amana-backend",
-    timestamp: new Date().toISOString(),
-  });
-});
-
 const eventListenerService = new EventListenerService(prisma);
 
 app.listen(port, async () => {
-  console.log(`Amana backend listening on port ${port}`);
+  appLogger.info({ port }, "Amana backend listening");
 
   try {
     await eventListenerService.start();
-    console.log("EventListenerService started successfully");
+    appLogger.info("EventListenerService started successfully");
   } catch (error) {
-    console.error("Failed to start EventListenerService:", error);
+    appLogger.error({ error }, "Failed to start EventListenerService");
   }
 });
 
-// Graceful shutdown
 const shutdown = async (signal: string) => {
-  console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+  appLogger.info({ signal }, "Received shutdown signal. Shutting down gracefully...");
   eventListenerService.stop();
   await prisma.$disconnect();
   process.exit(0);

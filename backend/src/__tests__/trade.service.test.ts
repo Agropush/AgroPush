@@ -4,6 +4,7 @@ import { TradeAccessDeniedError, TradeService } from "../services/trade.service"
 function createMockPrisma() {
   return {
     trade: {
+      create: jest.fn(),
       findMany: jest.fn(),
       count: jest.fn(),
       findFirst: jest.fn(),
@@ -17,7 +18,32 @@ describe("TradeService", () => {
 
   beforeEach(() => {
     prisma = createMockPrisma();
-    service = new TradeService(prisma);
+    service = new TradeService(prisma, {} as any);
+  });
+
+  it("stores a pending trade with PENDING_SIGNATURE status", async () => {
+    prisma.trade.create = jest.fn().mockResolvedValue({});
+
+    await service.createPendingTrade({
+      tradeId: "4294967297",
+      buyerAddress: "buyer-address",
+      sellerAddress: "seller-address",
+      amountUsdc: "15.5000000",
+      buyerLossBps: 5000,
+      sellerLossBps: 5000,
+    });
+
+    expect(prisma.trade.create).toHaveBeenCalledWith({
+      data: {
+        tradeId: "4294967297",
+        buyerAddress: "buyer-address",
+        sellerAddress: "seller-address",
+        amountUsdc: "15.5000000",
+        buyerLossBps: 5000,
+        sellerLossBps: 5000,
+        status: TradeStatus.PENDING_SIGNATURE,
+      },
+    });
   });
 
   it("GET /trades returns only caller's trades", async () => {
@@ -25,8 +51,8 @@ describe("TradeService", () => {
       {
         id: 1,
         tradeId: "T1",
-        buyer: "GA_CALLER",
-        seller: "GA_SELLER",
+        buyerAddress: "GA_CALLER",
+        sellerAddress: "GA_SELLER",
         amountUsdc: "100",
         status: TradeStatus.CREATED,
       },
@@ -42,7 +68,7 @@ describe("TradeService", () => {
     expect(prisma.trade.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          OR: [{ buyer: "GA_CALLER" }, { seller: "GA_CALLER" }],
+          OR: [{ buyerAddress: "GA_CALLER" }, { sellerAddress: "GA_CALLER" }],
         },
       })
     );
@@ -55,8 +81,8 @@ describe("TradeService", () => {
       {
         id: 2,
         tradeId: "T2",
-        buyer: "GA_CALLER",
-        seller: "GA_S2",
+        buyerAddress: "GA_CALLER",
+        sellerAddress: "GA_S2",
         amountUsdc: "200",
         status: TradeStatus.FUNDED,
       },
@@ -73,7 +99,7 @@ describe("TradeService", () => {
     expect(prisma.trade.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          OR: [{ buyer: "GA_CALLER" }, { seller: "GA_CALLER" }],
+          OR: [{ buyerAddress: "GA_CALLER" }, { sellerAddress: "GA_CALLER" }],
           status: TradeStatus.FUNDED,
         },
       })
@@ -84,8 +110,8 @@ describe("TradeService", () => {
     prisma.trade.findFirst = jest.fn().mockResolvedValue({
       id: 10,
       tradeId: "T10",
-      buyer: "GA_A",
-      seller: "GA_B",
+      buyerAddress: "GA_A",
+      sellerAddress: "GA_B",
       amountUsdc: "900",
       status: TradeStatus.CREATED,
     });
@@ -97,7 +123,7 @@ describe("TradeService", () => {
 
   it("GET /trades/stats returns correct counts and volume", async () => {
     prisma.trade.findMany = jest.fn().mockResolvedValue([
-      { amountUsdc: "100", status: TradeStatus.CREATED },
+      { amountUsdc: "100", status: TradeStatus.PENDING_SIGNATURE },
       { amountUsdc: "25.5", status: TradeStatus.FUNDED },
       { amountUsdc: "50", status: TradeStatus.COMPLETED },
     ]);

@@ -1,30 +1,32 @@
-import { TradeStatus, PrismaClient } from "@prisma/client";
-import { Request, Response, Router } from "express";
+import { PrismaClient, TradeStatus } from "@prisma/client";
+import { Response, Router } from "express";
+import { TradeController } from "../controllers/trade.controller";
+import { prisma as defaultPrisma } from "../lib/db";
+import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
 import { TradeAccessDeniedError, TradeService } from "../services/trade.service";
 
-export function createTradeRouter(prisma: PrismaClient) {
+export function createTradeRouter(prisma: PrismaClient = defaultPrisma) {
   const router = Router();
   const tradeService = new TradeService(prisma);
+  const tradeController = new TradeController(tradeService);
 
-  const getCallerAddress = (req: Request): string | null => {
-    const headerAddress = req.header("x-wallet-address") || req.header("x-address");
-    if (!headerAddress || !headerAddress.trim()) {
-      return null;
-    }
-    return headerAddress.trim();
-  };
-
-  const requireAuth = (req: Request, res: Response): string | null => {
-    const callerAddress = getCallerAddress(req);
-    if (!callerAddress) {
+  const requireWalletFromJwt = (req: AuthRequest, res: Response): string | null => {
+    const addr = req.user?.walletAddress?.trim();
+    if (!addr) {
       res.status(401).json({ error: "Unauthorized" });
       return null;
     }
-    return callerAddress;
+    return addr;
   };
 
-  router.get("/", async (req, res) => {
-    const callerAddress = requireAuth(req, res);
+  router.post("/", authMiddleware, tradeController.createTrade);
+  router.post("/:id/deposit", authMiddleware, tradeController.buildDepositTx);
+  router.post("/:id/confirm", authMiddleware, tradeController.confirmDelivery);
+  router.post("/:id/release", authMiddleware, tradeController.releaseFunds);
+  router.post("/:id/dispute", authMiddleware, tradeController.initiateDispute);
+
+  router.get("/", authMiddleware, async (req: AuthRequest, res) => {
+    const callerAddress = requireWalletFromJwt(req, res);
     if (!callerAddress) {
       return;
     }
@@ -60,8 +62,8 @@ export function createTradeRouter(prisma: PrismaClient) {
     res.status(200).json(result);
   });
 
-  router.get("/stats", async (req, res) => {
-    const callerAddress = requireAuth(req, res);
+  router.get("/stats", authMiddleware, async (req: AuthRequest, res) => {
+    const callerAddress = requireWalletFromJwt(req, res);
     if (!callerAddress) {
       return;
     }
@@ -70,14 +72,16 @@ export function createTradeRouter(prisma: PrismaClient) {
     res.status(200).json(stats);
   });
 
-  router.get("/:id", async (req, res) => {
-    const callerAddress = requireAuth(req, res);
+  router.get("/:id", authMiddleware, async (req: AuthRequest, res) => {
+    const callerAddress = requireWalletFromJwt(req, res);
     if (!callerAddress) {
       return;
     }
 
     try {
-      const trade = await tradeService.getTradeById(req.params.id, callerAddress);
+      const rawId = req.params.id;
+      const id = Array.isArray(rawId) ? rawId[0] : rawId;
+      const trade = await tradeService.getTradeById(id, callerAddress);
       if (!trade) {
         res.status(404).json({ error: "Trade not found" });
         return;
@@ -95,3 +99,5 @@ export function createTradeRouter(prisma: PrismaClient) {
 
   return router;
 }
+
+export const tradeRoutes = createTradeRouter();
