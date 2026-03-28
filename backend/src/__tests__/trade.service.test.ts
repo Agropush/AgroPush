@@ -29,6 +29,8 @@ describe("TradeService", () => {
       buyerAddress: "buyer-address",
       sellerAddress: "seller-address",
       amountUsdc: "15.5000000",
+      buyerLossBps: 5000,
+      sellerLossBps: 5000,
     });
 
     expect(prisma.trade.create).toHaveBeenCalledWith({
@@ -37,6 +39,8 @@ describe("TradeService", () => {
         buyerAddress: "buyer-address",
         sellerAddress: "seller-address",
         amountUsdc: "15.5000000",
+        buyerLossBps: 5000,
+        sellerLossBps: 5000,
         status: TradeStatus.PENDING_SIGNATURE,
       },
     });
