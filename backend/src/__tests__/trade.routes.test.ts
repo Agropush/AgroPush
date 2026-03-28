@@ -20,7 +20,7 @@ describe("Trade Routes", () => {
   let sellerToken: string;
 
   beforeAll(() => {
-    const secret = process.env.JWT_SECRET || "default_secret";
+    const secret = process.env.JWT_SECRET!;
     token = jwt.sign({ walletAddress: buyerAddress }, secret);
     sellerToken = jwt.sign({ walletAddress: sellerAddress }, secret);
   });

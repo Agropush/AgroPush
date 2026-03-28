@@ -35,7 +35,10 @@ export class AuthService {
     await redis.del(key);
 
     const publicKey = Keypair.fromPublicKey(walletAddress);
-    const isValid = publicKey.verify(challenge, signedChallenge);
+    const isValid = publicKey.verify(
+      Buffer.from(challenge, "utf8"),
+      Buffer.from(signedChallenge, "base64url"),
+    );
 
     if (!isValid) {
       throw new Error('Invalid signature');
@@ -44,7 +47,7 @@ export class AuthService {
     // Ensure user exists
     await findOrCreateUser(walletAddress);
 
-const payload = {
+    const payload = {
       walletAddress: walletAddress.toLowerCase(),
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + (parseInt(process.env.JWT_EXPIRES_IN || '86400') || 86400),

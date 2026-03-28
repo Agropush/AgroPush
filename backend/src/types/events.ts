@@ -22,7 +22,7 @@ export const EVENT_TO_STATUS: Record<EventType, TradeStatus> = {
   [EventType.DeliveryConfirmed]: TradeStatus.DELIVERED,
   [EventType.FundsReleased]: TradeStatus.COMPLETED,
   [EventType.DisputeInitiated]: TradeStatus.DISPUTED,
-  [EventType.DisputeResolved]: TradeStatus.CANCELLED,
+  [EventType.DisputeResolved]: TradeStatus.COMPLETED,
 };
 
 export interface ParsedEvent {

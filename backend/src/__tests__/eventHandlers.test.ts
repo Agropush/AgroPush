@@ -163,14 +163,20 @@ describe("eventHandlers", () => {
   /* ---------- handleDisputeResolved ------------------------------- */
 
   describe("handleDisputeResolved", () => {
-    it("should upsert Trade with CANCELLED status", async () => {
+    it("should upsert Trade with COMPLETED status when dispute is resolved", async () => {
       const event = makeParsedEvent(EventType.DisputeResolved);
       await handleDisputeResolved(mockPrisma, event);
 
       expect(mockPrisma.trade.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          update: expect.objectContaining({ status: TradeStatus.CANCELLED }),
+          update: expect.objectContaining({ status: TradeStatus.COMPLETED }),
         })
+      );
+    });
+
+    it("maps DisputeResolved to COMPLETED in EVENT_TO_STATUS", () => {
+      expect(EVENT_TO_STATUS[EventType.DisputeResolved]).toBe(
+        TradeStatus.COMPLETED,
       );
     });
   });

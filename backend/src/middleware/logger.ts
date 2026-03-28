@@ -1,5 +1,6 @@
 import pinoHttp from 'pino-http';
 import pino from 'pino';
+import type { Request } from 'express';
 import { env } from '../config/env';
 
 const isTest = env.NODE_ENV === 'test';

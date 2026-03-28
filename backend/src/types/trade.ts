@@ -1,18 +1,11 @@
-/** Off-chain trade record (DB mirror). Status updates after on-chain events per product flow. */
-export type TradeDbStatus =
-  | "PENDING_SIGNATURE"
-  | "CREATED"
-  | "FUNDED"
-  | "DELIVERED"
-  | "COMPLETED"
-  | "DISPUTED"
-  | "CANCELLED";
+import type { TradeStatus } from "@prisma/client";
 
+/** Off-chain trade record (DB mirror). Field names match Prisma `Trade`; status follows on-chain events. */
 export interface TradeRecord {
   id: number;
   tradeId: string;
   buyerAddress: string;
   sellerAddress: string;
   amountUsdc: string;
-  status: TradeDbStatus;
+  status: TradeStatus;
 }

@@ -31,9 +31,9 @@ describe('App Bootstrap', () => {
 
     const res = await request(testApp).get('/test-error');
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty('error', true);
-    expect(res.body).toHaveProperty('status', 400);
-    expect(res.body).toHaveProperty('message', 'Test error');
+    expect(res.body).toHaveProperty("error", true);
+    expect(res.body).toHaveProperty("status", 400);
+    expect(res.body).toHaveProperty("message", "Test error");
   });
 });
 
