@@ -73,8 +73,8 @@ describe("eventHandlers", () => {
         },
         create: {
           tradeId: "test-trade-001",
-          buyer: "GA_BUYER",
-          seller: "GA_SELLER",
+          buyerAddress: "GA_BUYER",
+          sellerAddress: "GA_SELLER",
           amountUsdc: "1000",
           status: TradeStatus.CREATED,
         },
@@ -89,8 +89,8 @@ describe("eventHandlers", () => {
       expect(mockPrisma.trade.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({
-            buyer: "",
-            seller: "",
+            buyerAddress: "",
+            sellerAddress: "",
             amountUsdc: "0",
           }),
         })
