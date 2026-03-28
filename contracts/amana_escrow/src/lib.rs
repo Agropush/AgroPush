@@ -2385,6 +2385,8 @@ mod integration_tests {
         // Second submission must panic
         let cid2 = soroban_sdk::String::from_str(&s.env, "QmSecondProof");
         client.submit_video_proof(&trade_id, &s.seller, &cid2);
+    }
+
     /// Evidence submission fails after dispute is resolved.
     #[test]
     #[should_panic(expected = "Evidence can only be submitted for a Disputed trade")]
@@ -2396,11 +2398,12 @@ mod integration_tests {
         // Raise dispute
         s.env.ledger().with_mut(|l| l.timestamp = 1_000);
         let dispute_reason = soroban_sdk::String::from_str(&s.env, "QmDisputeReason");
-      
+        client.initiate_dispute(&trade_id, &s.buyer, &dispute_reason);
+
         // Resolve dispute
         s.env.ledger().with_mut(|l| l.timestamp = 2_000);
-     
-        
+        client.resolve_dispute(&trade_id, &s.mediator, &10_000_u32);
+
         // Try to submit evidence after resolution - should fail
         s.env.ledger().with_mut(|l| l.timestamp = 3_000);
         let ipfs_hash = soroban_sdk::String::from_str(&s.env, "QmLateEvidence");
@@ -2420,7 +2423,8 @@ mod integration_tests {
         assert_eq!(evidence_list.len(), 0, "Evidence list should be empty for non-disputed trade");
         
         // Confirm delivery (no dispute path)
-      
+        client.confirm_delivery(&trade_id);
+
         // Evidence list should still be empty
         let evidence_list_after = client.get_evidence_list(&trade_id);
         assert_eq!(evidence_list_after.len(), 0, "Evidence list should remain empty after delivery confirmation");
@@ -2454,11 +2458,12 @@ mod integration_tests {
         // Create trade with 30/70 loss-sharing (seller bears 70% of loss)
         let trade_id = client.create_trade(&buyer, &seller, &amount, &3000_u32, &7000_u32);
         client.deposit(&trade_id);
-        client.raise_dispute(&trade_id, &buyer);
-        
+        let reason = soroban_sdk::String::from_str(&env, "QmAsymmetricDispute");
+        client.initiate_dispute(&trade_id, &buyer, &reason);
+
         let mediator = Address::generate(&env);
         client.set_mediator(&mediator);
-        
+
         // Mediator rules 40% for seller (60% loss - buyer wins)
         // loss = 60% = 6,000
         // seller bears: 6,000 * 70% = 4,200
@@ -2467,14 +2472,14 @@ mod integration_tests {
         // fee = 5,800 * 1% = 58
         // seller_net = 5,742
         // buyer_refund = 4,200
-        client.resolve_dispute(&trade_id, &4_000_u32);
-        
+        client.resolve_dispute(&trade_id, &mediator, &4_000_u32);
+
         let token = token::Client::new(&env, &usdc_id);
         assert_eq!(token.balance(&seller), 5_742, "seller with 70% loss burden");
         assert_eq!(token.balance(&treasury), 58, "fee on seller portion");
         assert_eq!(token.balance(&buyer), 4_200, "buyer refund with 30% loss burden");
         assert_eq!(token.balance(&client.address), 0, "escrow empty");
-        
+
         // Verify total adds up
         assert_eq!(5_742 + 58 + 4_200, 10_000, "total must equal original amount");
     }
@@ -2553,7 +2558,7 @@ mod integration_tests {
         // Step 7: Mediator resolves dispute (65% for seller, 35% loss)
         env.ledger().with_mut(|l| l.timestamp = 7_000);
         client.set_mediator(&mediator);
-        client.resolve_dispute(&trade_id, &6_500_u32);
+        client.resolve_dispute(&trade_id, &mediator, &6_500_u32);
         
         // Step 8: Verify final state
         let trade = client.get_trade(&trade_id);
@@ -2602,11 +2607,12 @@ mod integration_tests {
         // Create trade with 60/40 loss-sharing
         let trade_id = client.create_trade(&buyer, &seller, &amount, &6000_u32, &4000_u32);
         client.deposit(&trade_id);
-        client.raise_dispute(&trade_id, &buyer);
-        
+        let reason = soroban_sdk::String::from_str(&env, "QmSmallAmountDispute");
+        client.initiate_dispute(&trade_id, &buyer, &reason);
+
         let mediator = Address::generate(&env);
         client.set_mediator(&mediator);
-        
+
         // Mediator rules 55% for seller (45% loss)
         // loss = 45% of 100 = 45
         // seller bears: 45 * 40% = 18
@@ -2615,7 +2621,7 @@ mod integration_tests {
         // fee = 82 * 1% = 0.82 = 0 (integer division)
         // seller_net = 82 - 0 = 82
         // buyer_refund = 18
-        client.resolve_dispute(&trade_id, &5_500_u32);
+        client.resolve_dispute(&trade_id, &mediator, &5_500_u32);
         
         let token = token::Client::new(&env, &usdc_id);
         let seller_balance = token.balance(&seller);
