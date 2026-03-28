@@ -243,6 +243,7 @@ impl EscrowContract {
         if env.storage().instance().has(&DataKey::Initialized) {
             panic!("AlreadyInitialized");
         }
+        assert!(fee_bps <= 10_000, "fee_bps must not exceed 10000");
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::UsdcContract, &usdc_contract);
@@ -338,6 +339,7 @@ impl EscrowContract {
 
     pub fn create_trade(env: Env, buyer: Address, seller: Address, amount: i128, buyer_loss_bps: u32, seller_loss_bps: u32) -> u64 {
         assert!(amount > 0, "amount must be greater than zero");
+        assert!(buyer != seller, "buyer and seller must be different addresses");
         assert!(buyer_loss_bps + seller_loss_bps == 10_000, "loss ratios must sum to 10000 (100%)");
         let next_id: u64 = env.storage().instance().get(&NEXT_TRADE_ID).unwrap_or(1_u64);
         let ledger_seq = env.ledger().sequence() as u64;
@@ -499,6 +501,7 @@ impl EscrowContract {
     /// dispute brief so the full content lives off-chain but is committed here.
     pub fn initiate_dispute(env: Env, trade_id: u64, initiator: Address, reason_hash: String) {
         initiator.require_auth();
+        assert!(reason_hash.len() > 0, "reason_hash must not be empty");
 
         let key = DataKey::Trade(trade_id);
         let mut trade: Trade = env.storage().persistent().get(&key).expect("Trade not found");
@@ -1891,6 +1894,95 @@ mod test {
                 },
             }])
             .remove_mediator(&mediator);
+    }
+
+    // -----------------------------------------------------------------------
+    // Input validation tests (#190)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    #[should_panic(expected = "fee_bps must not exceed 10000")]
+    fn test_initialize_rejects_fee_bps_over_10000() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        let treasury = Address::generate(&env);
+        client.initialize(&admin, &usdc_id, &treasury, &10_001_u32);
+    }
+
+    #[test]
+    fn test_initialize_accepts_fee_bps_at_boundary_10000() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        let treasury = Address::generate(&env);
+        // 10_000 bps (100%) is the maximum allowed — must not panic
+        client.initialize(&admin, &usdc_id, &treasury, &10_000_u32);
+    }
+
+    #[test]
+    #[should_panic(expected = "buyer and seller must be different addresses")]
+    fn test_create_trade_rejects_self_trade() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let actor = Address::generate(&env);
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        let treasury = Address::generate(&env);
+        client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+        client.create_trade(&actor, &actor, &1_000_i128, &5000_u32, &5000_u32);
+    }
+
+    #[test]
+    #[should_panic(expected = "reason_hash must not be empty")]
+    fn test_initiate_dispute_rejects_empty_reason_hash() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let buyer = Address::generate(&env);
+        let seller = Address::generate(&env);
+        let treasury = Address::generate(&env);
+        let amount = 1_000_i128;
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+        let token_client = token::StellarAssetClient::new(&env, &usdc_id);
+        token_client.mint(&buyer, &amount);
+        let trade_id = client.create_trade(&buyer, &seller, &amount, &5000_u32, &5000_u32);
+        client.deposit(&trade_id);
+        let empty = soroban_sdk::String::from_str(&env, "");
+        client.initiate_dispute(&trade_id, &buyer, &empty);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_submit_video_proof_rejects_empty_cid() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let buyer = Address::generate(&env);
+        let seller = Address::generate(&env);
+        let treasury = Address::generate(&env);
+        let amount = 1_000_i128;
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+        let token_client = token::StellarAssetClient::new(&env, &usdc_id);
+        token_client.mint(&buyer, &amount);
+        let trade_id = client.create_trade(&buyer, &seller, &amount, &5000_u32, &5000_u32);
+        client.deposit(&trade_id);
+        let empty_cid = soroban_sdk::String::from_str(&env, "");
+        client.submit_video_proof(&trade_id, &buyer, &empty_cid);
     }
 }
 
