@@ -1984,6 +1984,122 @@ mod test {
         let empty_cid = soroban_sdk::String::from_str(&env, "");
         client.submit_video_proof(&trade_id, &buyer, &empty_cid);
     }
+
+    // -----------------------------------------------------------------------
+    // Payout invariant and boundary tests (#191)
+    // -----------------------------------------------------------------------
+
+    /// Helper: run a full dispute resolution and return (seller_net, buyer_refund, fee).
+    fn resolve_and_balances(
+        env: &Env,
+        buyer_loss_bps: u32,
+        seller_loss_bps: u32,
+        seller_gets_bps: u32,
+        fee_bps: u32,
+        amount: i128,
+    ) -> (i128, i128, i128) {
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(env, &contract_id);
+        let admin = Address::generate(env);
+        let buyer = Address::generate(env);
+        let seller = Address::generate(env);
+        let treasury = Address::generate(env);
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        client.initialize(&admin, &usdc_id, &treasury, &fee_bps);
+        let token_mint = token::StellarAssetClient::new(env, &usdc_id);
+        token_mint.mint(&buyer, &amount);
+        let trade_id = client.create_trade(&buyer, &seller, &amount, &buyer_loss_bps, &seller_loss_bps);
+        client.deposit(&trade_id);
+        let reason = soroban_sdk::String::from_str(env, "QmInvariantTest");
+        client.initiate_dispute(&trade_id, &buyer, &reason);
+        let mediator = Address::generate(env);
+        client.set_mediator(&mediator);
+        client.resolve_dispute(&trade_id, &mediator, &seller_gets_bps);
+        let tok = token::Client::new(env, &usdc_id);
+        (tok.balance(&seller), tok.balance(&buyer), tok.balance(&treasury))
+    }
+
+    /// Conservation invariant: seller_net + buyer_refund + fee == total for all inputs.
+    #[test]
+    fn test_payout_conservation_invariant() {
+        // Table of (buyer_loss_bps, seller_loss_bps, seller_gets_bps, fee_bps, amount)
+        let cases: &[(u32, u32, u32, u32, i128)] = &[
+            (5000, 5000, 5000, 100, 10_000),
+            (5000, 5000, 10000, 100, 10_000),
+            (5000, 5000, 0, 100, 10_000),
+            (10000, 0, 8000, 100, 10_000),
+            (0, 10000, 3000, 100, 10_000),
+            (7000, 3000, 6000, 100, 10_000),
+            (2000, 8000, 9000, 100, 10_000),
+            (5000, 5000, 5000, 0, 10_000),
+            (5000, 5000, 5000, 10000, 10_000),
+            (5000, 5000, 5000, 100, 1),
+            (5000, 5000, 5000, 100, 1_000_000),
+        ];
+        for &(blb, slb, sgb, fb, amt) in cases {
+            let env = Env::default();
+            env.mock_all_auths();
+            let (seller_net, buyer_refund, fee) =
+                resolve_and_balances(&env, blb, slb, sgb, fb, amt);
+            assert_eq!(
+                seller_net + buyer_refund + fee,
+                amt,
+                "conservation failed: blb={blb} slb={slb} sgb={sgb} fb={fb} amt={amt}"
+            );
+        }
+    }
+
+    /// Non-negativity: no payout component is negative.
+    #[test]
+    fn test_payout_non_negativity() {
+        let cases: &[(u32, u32, u32, u32, i128)] = &[
+            (5000, 5000, 0, 100, 10_000),
+            (5000, 5000, 10000, 10000, 10_000),
+            (0, 10000, 0, 100, 10_000),
+            (10000, 0, 10000, 100, 10_000),
+        ];
+        for &(blb, slb, sgb, fb, amt) in cases {
+            let env = Env::default();
+            env.mock_all_auths();
+            let (seller_net, buyer_refund, fee) =
+                resolve_and_balances(&env, blb, slb, sgb, fb, amt);
+            assert!(seller_net >= 0, "seller_net negative");
+            assert!(buyer_refund >= 0, "buyer_refund negative");
+            assert!(fee >= 0, "fee negative");
+        }
+    }
+
+    /// Monotonicity: increasing seller_gets_bps must not decrease seller payout
+    /// (with fixed 50/50 loss-sharing ratios).
+    #[test]
+    fn test_payout_seller_monotonicity() {
+        let bps_steps = [0_u32, 2000, 4000, 5000, 6000, 8000, 10000];
+        let mut prev_seller = -1_i128;
+        for &sgb in &bps_steps {
+            let env = Env::default();
+            env.mock_all_auths();
+            let (seller_net, _, _) = resolve_and_balances(&env, 5000, 5000, sgb, 100, 10_000);
+            assert!(
+                seller_net >= prev_seller,
+                "seller payout decreased: sgb={sgb} seller_net={seller_net} prev={prev_seller}"
+            );
+            prev_seller = seller_net;
+        }
+    }
+
+    /// Bounds: seller_gets_bps > 10_000 must panic.
+    #[test]
+    #[should_panic(expected = "seller_gets_bps must be <= 10_000")]
+    fn test_resolve_panics_on_seller_gets_bps_over_10000() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (contract_id, _usdc_id, _buyer, _seller, _treasury, trade_id) =
+            setup_disputed_trade(&env, 10_000, 100);
+        let mediator = Address::generate(&env);
+        let client = EscrowContractClient::new(&env, &contract_id);
+        client.set_mediator(&mediator);
+        client.resolve_dispute(&trade_id, &mediator, &10_001_u32);
+    }
 }
 
 // ---------------------------------------------------------------------------
