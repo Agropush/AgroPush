@@ -2100,6 +2100,149 @@ mod test {
         client.set_mediator(&mediator);
         client.resolve_dispute(&trade_id, &mediator, &10_001_u32);
     }
+
+    // -----------------------------------------------------------------------
+    // Auth / state guard matrix tests (#189)
+    // confirm_delivery x release_funds x cancel_trade
+    // -----------------------------------------------------------------------
+
+    // --- confirm_delivery guards ---
+
+    #[test]
+    #[should_panic]
+    fn test_confirm_delivery_rejects_non_buyer_caller() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (contract_id, _usdc, _buyer, seller, _treasury, trade_id) =
+            setup_funded_trade(&env, 10_000, 100);
+        let client = EscrowContractClient::new(&env, &contract_id);
+        // seller is not the buyer — must be rejected
+        client
+            .mock_auths(&[soroban_sdk::testutils::MockAuth {
+                address: &seller,
+                invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                    contract: &contract_id,
+                    fn_name: "confirm_delivery",
+                    args: soroban_sdk::vec![&env,
+                        soroban_sdk::IntoVal::<Env, soroban_sdk::Val>::into_val(&trade_id, &env)],
+                    sub_invokes: &[],
+                },
+            }])
+            .confirm_delivery(&trade_id);
+    }
+
+    #[test]
+    #[should_panic(expected = "Trade must be funded")]
+    fn test_confirm_delivery_rejects_wrong_status() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let buyer = Address::generate(&env);
+        let seller = Address::generate(&env);
+        let treasury = Address::generate(&env);
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        client.initialize(&admin, &usdc_id, &treasury, &100);
+        // Trade is Created (not Funded)
+        let trade_id = client.create_trade(&buyer, &seller, &1_000_i128, &5000_u32, &5000_u32);
+        client.confirm_delivery(&trade_id);
+    }
+
+    // --- release_funds guards ---
+
+    #[test]
+    #[should_panic]
+    fn test_release_funds_rejects_non_buyer_caller() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (contract_id, _usdc, _buyer, seller, _treasury, trade_id) =
+            setup_funded_trade(&env, 10_000, 100);
+        let client = EscrowContractClient::new(&env, &contract_id);
+        client.confirm_delivery(&trade_id);
+        // seller tries to release — must be rejected
+        client
+            .mock_auths(&[soroban_sdk::testutils::MockAuth {
+                address: &seller,
+                invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                    contract: &contract_id,
+                    fn_name: "release_funds",
+                    args: soroban_sdk::vec![&env,
+                        soroban_sdk::IntoVal::<Env, soroban_sdk::Val>::into_val(&trade_id, &env)],
+                    sub_invokes: &[],
+                },
+            }])
+            .release_funds(&trade_id);
+    }
+
+    #[test]
+    #[should_panic(expected = "Trade must be delivered")]
+    fn test_release_funds_rejects_wrong_status() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (contract_id, _usdc, _buyer, _seller, _treasury, trade_id) =
+            setup_funded_trade(&env, 10_000, 100);
+        let client = EscrowContractClient::new(&env, &contract_id);
+        // Trade is Funded, not Delivered
+        client.release_funds(&trade_id);
+    }
+
+    // --- cancel_trade guards ---
+
+    #[test]
+    #[should_panic(expected = "Unauthorized caller")]
+    fn test_cancel_trade_rejects_third_party_in_created_status() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let buyer = Address::generate(&env);
+        let seller = Address::generate(&env);
+        let treasury = Address::generate(&env);
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        client.initialize(&admin, &usdc_id, &treasury, &100);
+        let trade_id = client.create_trade(&buyer, &seller, &1_000_i128, &5000_u32, &5000_u32);
+        let stranger = Address::generate(&env);
+        client.cancel_trade(&trade_id, &stranger);
+    }
+
+    #[test]
+    #[should_panic(expected = "Unauthorized caller")]
+    fn test_cancel_trade_rejects_third_party_in_funded_status() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (contract_id, _usdc, _buyer, _seller, _treasury, trade_id) =
+            setup_funded_trade(&env, 10_000, 100);
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let stranger = Address::generate(&env);
+        client.cancel_trade(&trade_id, &stranger);
+    }
+
+    #[test]
+    fn test_admin_immediate_cancel_in_funded_status() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(EscrowContract, ());
+        let client = EscrowContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let buyer = Address::generate(&env);
+        let seller = Address::generate(&env);
+        let treasury = Address::generate(&env);
+        let amount = 5_000_i128;
+        let usdc_id = env.register_stellar_asset_contract(admin.clone());
+        client.initialize(&admin, &usdc_id, &treasury, &100);
+        let token_mint = token::StellarAssetClient::new(&env, &usdc_id);
+        token_mint.mint(&buyer, &amount);
+        let trade_id = client.create_trade(&buyer, &seller, &amount, &5000_u32, &5000_u32);
+        client.deposit(&trade_id);
+        // Admin cancels immediately without needing both parties
+        client.cancel_trade(&trade_id, &admin);
+        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Cancelled));
+        let tok = token::Client::new(&env, &usdc_id);
+        assert_eq!(tok.balance(&buyer), amount, "buyer must be fully refunded");
+        assert_eq!(tok.balance(&client.address), 0, "escrow must be empty");
+    }
 }
 
 // ---------------------------------------------------------------------------
