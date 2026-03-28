@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 
-// Size to dimension class mapping
+// Size mappings
 const sizeClasses = {
   xs: 'w-6 h-6',
   sm: 'w-8 h-8',
@@ -10,22 +10,22 @@ const sizeClasses = {
   xl: 'w-16 h-16',
 } as const;
 
-// Badge/indicator size mapping
+// Badge sizes
 const badgeSizeClasses = {
-  xs: 'w-3 h-3',
-  sm: 'w-3.5 h-3.5',
-  md: 'w-4 h-4',
-  lg: 'w-4.5 h-4.5',
-  xl: 'w-6 h-6',
+  xs: 'w-2.5 h-2.5',
+  sm: 'w-3 h-3',
+  md: 'w-3.5 h-3.5',
+  lg: 'w-4 h-4',
+  xl: 'w-5 h-5',
 } as const;
 
-// Fallback text size mapping
+// Text sizes for fallback
 const textSizeClasses = {
-  xs: 'text-xs',
-  sm: 'text-sm',
-  md: 'text-base',
-  lg: 'text-lg',
-  xl: 'text-2xl',
+  xs: 'text-[10px]',
+  sm: 'text-xs',
+  md: 'text-sm',
+  lg: 'text-base',
+  xl: 'text-lg',
 } as const;
 
 export interface AvatarProps {
@@ -46,38 +46,46 @@ const Avatar: React.FC<AvatarProps> = ({
   online = false,
 }) => {
   const sizeClass = sizeClasses[size];
-  const textSizeClass = textSizeClasses[size];
   const badgeSizeClass = badgeSizeClasses[size];
-  
+  const textSizeClass = textSizeClasses[size];
+
   return (
-    <div className={`relative rounded-full overflow-hidden border border-border-default ${sizeClass}`}>
-      {src && (
+    <div
+      className={`relative inline-flex shrink-0 rounded-full overflow-hidden border border-border-default ${sizeClass}`}
+    >
+      {/* Image */}
+      {src ? (
         <Image
           src={src}
           alt={alt}
           fill
           className="object-cover"
+          sizes="(max-width: 768px) 100vw, 40px"
         />
-      )}
-      {!src && fallback && (
+      ) : (
+        /* Fallback */
         <div
-          className={`bg-elevated text-text-secondary flex items-center justify-center font-medium rounded-full border border-border-default ${textSizeClass}`}
+          className={`w-full h-full bg-elevated text-text-secondary flex items-center justify-center font-medium ${textSizeClass}`}
           role="img"
           aria-label={alt}
+          title={alt}
         >
-          {fallback}
+          {fallback ?? alt.slice(0, 2).toUpperCase()}
         </div>
       )}
+
+      {/* Verified badge */}
       {verified && (
         <div
-          className={`absolute -bottom-0.5 -right-0.5 rounded-full bg-bg-primary border-2 border-emerald flex items-center justify-center ${badgeSizeClass}`}
+          className={`absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 rounded-full bg-bg-primary border border-bg-primary flex items-center justify-center ${badgeSizeClass}`}
           aria-label="Verified"
+          title="Verified"
         >
           <svg
             viewBox="0 0 16 16"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full p-0.5"
+            className="w-full h-full p-[2px]"
           >
             <path
               d="M13.3334 4L6.00002 11.3333L2.66669 8"
@@ -89,10 +97,13 @@ const Avatar: React.FC<AvatarProps> = ({
           </svg>
         </div>
       )}
-      {online && !verified && (
+
+      {/* Online indicator */}
+      {online && (
         <div
-          className={`absolute -bottom-0.5 -right-0.5 rounded-full bg-emerald border-2 border-bg-primary ${badgeSizeClass}`}
+          className={`absolute bottom-0 left-0 translate-x-[-25%] translate-y-[25%] rounded-full bg-emerald border-2 border-bg-primary ${badgeSizeClass}`}
           aria-label="Online"
+          title="Online"
         />
       )}
     </div>
