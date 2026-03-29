@@ -121,7 +121,7 @@ export default function Step3Review() {
           <p className="text-emerald font-mono text-sm break-all">{txHash}</p>
         </div>
         <button
-          onClick={() => router.push(`/assets/${tradeId}`)}
+          onClick={() => router.push(`/trades/${tradeId}`)}
           className="h-12 w-full flex items-center justify-center rounded-full bg-gradient-gold-cta text-text-inverse font-semibold"
         >
           View Trade Details
