@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { signTransaction } from "@stellar/freighter-api";
 import { useTrade } from "../TradeContext";
 import { useAuth } from "@/hooks/useAuth";
-import { api, ApiError } from "@/lib/api";
+import { api, apiConfig, ApiError } from "@/lib/api";
 
 type Row = { label: string; value: string };
 
@@ -59,7 +59,7 @@ export default function Step3Review() {
       setTradeId(createResponse.tradeId);
 
       const signResult = await signTransaction(createResponse.unsignedXdr, {
-        networkPassphrase: process.env.NEXT_PUBLIC_STELLAR_NETWORK || "Test SDF Network ; September 2015",
+        networkPassphrase: apiConfig.getStellarNetworkPassphrase(),
       });
 
       if (signResult.error !== undefined) {
@@ -68,7 +68,7 @@ export default function Step3Review() {
 
       const signedXdr = signResult.signedTxXdr;
 
-      const rpcUrl = process.env.NEXT_PUBLIC_STELLAR_RPC_URL || "https://soroban-testnet.stellar.org";
+      const rpcUrl = apiConfig.getStellarRpcUrl();
       const submitResponse = await fetch(rpcUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
