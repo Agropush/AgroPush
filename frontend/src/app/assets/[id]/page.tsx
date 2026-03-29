@@ -81,6 +81,49 @@ const MOCK_TRADE: TradeDetail = {
     { label: "Quality Deviation", value: 2 },
     { label: "Counterparty Risk", value: 5 },
   ],
+
+  transactionTimeline: [
+    {
+      id: "tx-1",
+      title: "Trade Created",
+      actor: "system",
+      timestamp: "Oct 24, 14:15 GMT",
+      description: "Trade AMN-4920-X initiated on-chain. Contract deployed.",
+    },
+    {
+      id: "tx-2",
+      title: "Funds Deposited",
+      actor: "buyer",
+      timestamp: "Oct 24, 14:20 GMT",
+      description: "42,000 USDC locked in Amana Vault v2.",
+    },
+    {
+      id: "tx-3",
+      title: "Goods Dispatched",
+      actor: "seller",
+      timestamp: "Oct 25, 11:00 GMT",
+      description: "Shipment handed off to Maersk Line. BOL issued.",
+    },
+    {
+      id: "tx-4",
+      title: "In Transit",
+      actor: "driver",
+      description: "Vessel MS Silver-Oak en route to Port of Singapore.",
+    },
+    {
+      id: "tx-5",
+      title: "Delivery Confirmed / Disputed",
+      actor: "buyer",
+      description: "Buyer confirms receipt or raises a dispute.",
+    },
+    {
+      id: "tx-6",
+      title: "Funds Released / Refunded",
+      actor: "system",
+      description: "Smart contract executes final settlement.",
+    },
+  ],
+  currentTransactionIndex: 3,
 };
 
 export default function TradeDetailPage() {
