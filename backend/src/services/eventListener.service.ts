@@ -1,6 +1,9 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import * as StellarSdk from "@stellar/stellar-sdk";
-import { getEventListenerConfig, EventListenerConfig } from "../config/eventListener.config";
+import {
+  getEventListenerConfig,
+  EventListenerConfig,
+} from "../config/eventListener.config";
 import { EventType, ParsedEvent } from "../types/events";
 import { dispatchEvent } from "./eventHandlers";
 import { appLogger } from "../middleware/logger";
@@ -15,7 +18,7 @@ export async function isAlreadyProcessed(
   prisma: PrismaClient,
   key: { ledgerSequence: number; contractId: string; eventId: string }
 ): Promise<boolean> {
-  const existing = await prisma.processedEvent.findUnique({
+  const existing = await (prisma as any).processedEvent.findUnique({
     where: {
       ledgerSequence_contractId_eventId: key,
     },
@@ -46,7 +49,7 @@ export async function processEventAtomically(
   try {
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await handler(tx, event);
-      await tx.processedEvent.create({
+      await (tx as any).processedEvent.create({
         data: {
           ledgerSequence: event.ledgerSequence,
           contractId: event.contractId,
@@ -95,7 +98,7 @@ export class EventListenerService {
     this.running = true;
 
     // Hydrate in-memory set from DB on startup
-    const recentEvents = await this.prisma.processedEvent.findMany({
+    const recentEvents = await (this.prisma as any).processedEvent.findMany({
       orderBy: { ledgerSequence: "desc" },
       take: this.config.processedLedgersCacheSize,
     });
@@ -108,8 +111,11 @@ export class EventListenerService {
     }
 
     appLogger.info(
-      { pollIntervalMs: this.config.pollIntervalMs, contractId: this.config.contractId },
-      "[EventListener] Started"
+      {
+        pollIntervalMs: this.config.pollIntervalMs,
+        contractId: this.config.contractId,
+      },
+      "[EventListener] Started",
     );
     this.scheduleNextPoll(0);
   }
@@ -187,16 +193,23 @@ export class EventListenerService {
         this.lastLedger = ledgerSequence;
       }
       appLogger.debug(
-        { eventType: parsed.eventType, tradeId: parsed.tradeId, ledger: ledgerSequence },
-        "[EventListener] Processed event"
+        {
+          eventType: parsed.eventType,
+          tradeId: parsed.tradeId,
+          ledger: ledgerSequence,
+        },
+        "[EventListener] Processed event",
       );
     } catch (error) {
       appLogger.error({ error, eventId }, "[EventListener] Failed to process event");
+      throw error;
     }
   }
 
   /** Parse raw Soroban event into our internal format. */
-  private parseEvent(rawEvent: StellarSdk.rpc.Api.EventResponse): ParsedEvent | null {
+  private parseEvent(
+    rawEvent: StellarSdk.rpc.Api.EventResponse,
+  ): ParsedEvent | null {
     try {
       const topic = rawEvent.topic;
       if (!topic || topic.length === 0) return null;
@@ -212,9 +225,8 @@ export class EventListenerService {
       }
 
       // Extract trade_id from second topic element or from value
-      const tradeId = topic.length > 1
-        ? this.extractScalarValue(topic[1])
-        : "unknown";
+      const tradeId =
+        topic.length > 1 ? this.extractScalarValue(topic[1]) : "unknown";
 
       const data: Record<string, unknown> = {};
       if (rawEvent.value) {
@@ -278,18 +290,28 @@ export class EventListenerService {
   /** Exponential backoff on RPC failure. */
   handleBackoff(): void {
     const jitter = Math.random() * this.currentBackoffMs * 0.1;
-    const delay = Math.min(this.currentBackoffMs + jitter, this.config.backoffMaxMs);
+    const delay = Math.min(
+      this.currentBackoffMs + jitter,
+      this.config.backoffMaxMs,
+    );
 
-    appLogger.warn({ delayMs: Math.round(delay) }, "[EventListener] Backing off");
+    appLogger.warn(
+      { delayMs: Math.round(delay) },
+      "[EventListener] Backing off",
+    );
     this.scheduleNextPoll(delay);
 
-    this.currentBackoffMs = Math.min(this.currentBackoffMs * 2, this.config.backoffMaxMs);
+    this.currentBackoffMs = Math.min(
+      this.currentBackoffMs * 2,
+      this.config.backoffMaxMs,
+    );
   }
 
   /** Reset backoff to initial value after a successful poll. */
   resetBackoff(): void {
     this.currentBackoffMs = this.config.backoffInitialMs;
   }
+
 
   /** Evict oldest events from in-memory set when it exceeds the cache limit. */
   private evictOldEvents(): void {
