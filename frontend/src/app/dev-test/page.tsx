@@ -1,6 +1,11 @@
 import { Icon } from "@/components/ui/Icon";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { Spinner } from "@/components/ui/Spinner";
 
 import { StepIndicator } from "@/components/ui/StepIndicator";
+import { TradeListItemDemo } from "./TradeListItemDemo";
+import { Spinner } from "@/components/ui/Spinner";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 const STEPS = [
   { label: "Create Trade", description: "3-step flow" },
@@ -54,23 +59,39 @@ export default function IconDevPage() {
         </h2>
         <div className="space-y-16">
           <div className="bg-bg-card p-8 rounded-xl border border-border-default">
-            <p className="text-xs text-text-muted mb-6">Current Step: 0 (Initial)</p>
+            <p className="text-xs text-text-muted mb-6">
+              Current Step: 0 (Initial)
+            </p>
             <StepIndicator steps={STEPS} currentStep={0} />
           </div>
 
           <div className="bg-bg-card p-8 rounded-xl border border-border-default">
-            <p className="text-xs text-text-muted mb-6">Current Step: 1 (In Progress)</p>
+            <p className="text-xs text-text-muted mb-6">
+              Current Step: 1 (In Progress)
+            </p>
             <StepIndicator steps={STEPS} currentStep={1} />
           </div>
 
           <div className="bg-bg-card p-8 rounded-xl border border-border-default">
-            <p className="text-xs text-text-muted mb-6">Completed Steps: [0, 1], Current Step: 2</p>
-            <StepIndicator steps={STEPS} currentStep={2} completedSteps={[0, 1]} />
+            <p className="text-xs text-text-muted mb-6">
+              Completed Steps: [0, 1], Current Step: 2
+            </p>
+            <StepIndicator
+              steps={STEPS}
+              currentStep={2}
+              completedSteps={[0, 1]}
+            />
           </div>
 
           <div className="bg-bg-card p-8 rounded-xl border border-border-default">
-            <p className="text-xs text-text-muted mb-6">All Completed (Step 3 reached)</p>
-            <StepIndicator steps={STEPS} currentStep={3} completedSteps={[0, 1, 2]} />
+            <p className="text-xs text-text-muted mb-6">
+              All Completed (Step 3 reached)
+            </p>
+            <StepIndicator
+              steps={STEPS}
+              currentStep={3}
+              completedSteps={[0, 1, 2]}
+            />
           </div>
         </div>
       </section>
@@ -123,6 +144,18 @@ export default function IconDevPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* ── TradeListItem ─────────────────────────────────────── */}
+      <section className="mb-10">
+        <h2 className="text-xs font-semibold tracking-widest text-text-muted mb-1 uppercase">
+          TradeListItem — all statuses
+        </h2>
+        <p className="text-text-muted text-xs mb-6">
+          Click a row or an action button — the last fired action appears below
+          the list.
+        </p>
+        <TradeListItemDemo />
       </section>
 
       {/* ── Spinner ──────────────────────────────────────────── */}

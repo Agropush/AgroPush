@@ -4,7 +4,7 @@ import {
   sorobanRpcClient, 
   networkPassphrase 
 } from '../config/stellar';
-import * as StellarSdk from "@stellar/stellar-sdk";
+import { retryAsync } from "../lib/retry";
 import { appLogger } from "../middleware/logger";
 
 export class StellarService {
@@ -29,7 +29,7 @@ export class StellarService {
 
   public async getAccountBalance(publicKey: string, assetCode: string = "USDC"): Promise<string> {
     try {
-      const account = await this.horizonServer.loadAccount(publicKey);
+      const account = await retryAsync(() => this.horizonServer.loadAccount(publicKey));
       const balance = account.balances.find((b: any) => {
         if (assetCode === "XLM") {
           return b.asset_type === "native";
@@ -67,14 +67,14 @@ export class StellarService {
       return transaction.toXDR();
     } catch (error: any) {
       if (error.response && error.response.status === 404) {
-        console.error(`Source account not found: ${sourceAccount}`, error);
+        appLogger.error({ error, sourceAccount }, "Source account not found");
         throw new Error("Source account does not exist");
       }
       if (error.message && error.message.includes('operation')) {
-        console.error(`Invalid transaction operations:`, error);
+        appLogger.error({ error }, "Invalid transaction operations");
         throw new Error(`Invalid transaction operations: ${error.message}`);
       }
-      console.error(`Failed to build transaction:`, error);
+      appLogger.error({ error }, "Failed to build transaction");
       throw new Error(`Failed to build transaction: ${error.message || 'Unknown error'}`);
     }
   }
@@ -88,7 +88,7 @@ export class StellarService {
       const response = await this.sorobanRpc.sendTransaction(transaction as any);
       
       // Log transaction hash for debugging
-      console.log(`Transaction submitted with hash: ${response.hash}`);
+      appLogger.info({ hash: response.hash }, "Transaction submitted");
       
       // Check response status
       if (response.status === 'ERROR') {
@@ -96,11 +96,11 @@ export class StellarService {
         if (response.errorResult) {
           // Contract panic - execution failure
           const errorMessage = this.parseContractError(response.errorResult);
-          console.error(`Contract Panic:`, errorMessage);
+          appLogger.error({ errorMessage }, "Contract Panic");
           throw new Error(`Contract Panic: ${errorMessage}`);
         } else {
           // RPC error - infrastructure failure
-          console.error(`RPC Error:`, response);
+          appLogger.error({ response }, "RPC Error");
           throw new Error(`RPC Error: ${response.status}`);
         }
       }
@@ -110,7 +110,7 @@ export class StellarService {
     } catch (error: any) {
       // Handle XDR parsing errors
       if (error.message && error.message.includes('XDR')) {
-        console.error(`Invalid transaction XDR:`, error);
+        appLogger.error({ error }, "Invalid transaction XDR");
         throw new Error(`Invalid transaction XDR: ${error.message}`);
       }
       
@@ -120,7 +120,7 @@ export class StellarService {
       }
       
       // Handle network/timeout errors
-      console.error(`Transaction submission failed:`, error);
+      appLogger.error({ error }, "Transaction submission failed");
       throw new Error(`Transaction submission failed: ${error.message || 'Unknown error'}`);
     }
   }

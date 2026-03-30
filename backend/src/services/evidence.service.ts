@@ -1,7 +1,7 @@
 import axios from "axios";
 import { PrismaClient } from "@prisma/client";
 import { prisma as defaultPrisma } from "../lib/db";
-import { IPFSService } from "./ipfs.service";
+import { IPFSService, ServiceUnavailableError } from "./ipfs.service";
 
 export class EvidenceAccessDeniedError extends Error {
     status = 403;
@@ -16,6 +16,14 @@ export class EvidenceTradeNotFoundError extends Error {
     constructor() {
         super("Trade not found");
         this.name = "EvidenceTradeNotFoundError";
+    }
+}
+
+export class EvidenceValidationError extends Error {
+    status = 400;
+    constructor(message = "Invalid evidence file") {
+        super(message);
+        this.name = "EvidenceValidationError";
     }
 }
 
@@ -88,6 +96,19 @@ export class EvidenceService {
             throw new EvidenceAccessDeniedError();
         }
 
+        // Validate mime type
+        const allowed = ["video/mp4", "video/webm"];
+        if (!allowed.includes(file.mimetype)) {
+            throw new EvidenceValidationError("Unsupported file type");
+        }
+
+        // Enforce size limit (50MB)
+        const size = (file as any).size ?? file.buffer.length;
+        const MAX = 50 * 1024 * 1024;
+        if (size > MAX) {
+            throw new EvidenceValidationError("File too large");
+        }
+
         const cid = await this.ipfs.uploadFile(file.buffer, file.originalname);
 
         const record = await this.prisma.tradeEvidence.create({
@@ -112,18 +133,36 @@ export class EvidenceService {
      * Returns an axios response stream so the route can pipe it.
      */
     async streamFromIPFS(cid: string, range?: string) {
-        const url = this.resolveGatewayUrl(cid);
+        // Build list of gateway base URLs to try. Prefer explicit env var list.
+        const env = process.env.IPFS_GATEWAY_URLS;
+        const urls: string[] = [];
+        if (env) {
+            for (const g of env.split(",")) {
+                const base = g.trim();
+                if (base) urls.push(`${base.replace(/\/$/, "")}/${cid}`);
+            }
+        } else {
+            urls.push(this.resolveGatewayUrl(cid));
+        }
 
         const headers: Record<string, string> = {};
         if (range) headers["Range"] = range;
 
-        const response = await axios.get(url, {
-            responseType: "stream",
-            headers,
-            validateStatus: (s) => s < 500,
-        });
+        let lastError: any = null;
+        for (const url of urls) {
+            try {
+                const response = await axios.get(url, {
+                    responseType: "stream",
+                    headers,
+                    validateStatus: (s) => s < 500,
+                });
+                return response;
+            } catch (err) {
+                lastError = err;
+            }
+        }
 
-        return response;
+        throw new ServiceUnavailableError();
     }
 
     /** Resolve and cache the public gateway URL for a CID. */

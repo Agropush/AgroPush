@@ -1,71 +1,25 @@
 "use client";
 
-import { Suspense, use, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Shell from "@/components/Shell";
+import { useAuth } from "@/hooks/useAuth";
+import { api, ApiError, TradeResponse } from "@/lib/api";
 
-type CardData = {
+function BentoCard({
+  title,
+  value,
+  helper,
+}: {
   title: string;
   value: string;
   helper: string;
-};
-
-const cardPromiseCache = new Map<string, Promise<CardData>>();
-
-function buildEscrowAddress(tradeId: string) {
-  return `ESCROW_${tradeId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12) || "UNKNOWN"}`;
-}
-
-function getCardPromise(tradeId: string, key: "status" | "asset" | "counterparty") {
-  const cacheKey = `${tradeId}:${key}`;
-  const cached = cardPromiseCache.get(cacheKey);
-  if (cached) return cached;
-
-  const promise = new Promise<CardData>((resolve) => {
-    const delay = key === "status" ? 450 : key === "asset" ? 700 : 1000;
-    setTimeout(() => {
-      if (key === "status") {
-        resolve({
-          title: "Trade Status",
-          value: "active",
-          helper: "Synced from escrow contract state",
-        });
-        return;
-      }
-      if (key === "asset") {
-        resolve({
-          title: "Asset Pair",
-          value: "XLM / USDC",
-          helper: "Current pair attached to trade",
-        });
-        return;
-      }
-      resolve({
-        title: "Counterparty",
-        value: "0xA1b2...C3d4",
-        helper: "Wallet currently bound to escrow",
-      });
-    }, delay);
-  });
-
-  cardPromiseCache.set(cacheKey, promise);
-  return promise;
-}
-
-function BentoCard({
-  tradeId,
-  cardKey,
-}: {
-  tradeId: string;
-  cardKey: "status" | "asset" | "counterparty";
 }) {
-  const data = use(getCardPromise(tradeId, cardKey));
-
   return (
     <div className="rounded-lg border border-border-default bg-bg-card p-4">
-      <p className="text-xs uppercase tracking-wide text-text-muted">{data.title}</p>
-      <p className="mt-3 text-lg font-semibold text-text-primary">{data.value}</p>
-      <p className="mt-2 text-xs text-text-secondary">{data.helper}</p>
+      <p className="text-xs uppercase tracking-wide text-text-muted">{title}</p>
+      <p className="mt-3 text-lg font-semibold text-text-primary">{value}</p>
+      <p className="mt-2 text-xs text-text-secondary">{helper}</p>
     </div>
   );
 }
@@ -80,54 +34,59 @@ function BentoFallback({ label }: { label: string }) {
   );
 }
 
-function TradeDetailOrganism({ tradeId }: { tradeId: string }) {
-  const [escrowAddress, setEscrowAddress] = useState<string | null>(null);
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setEscrowAddress(buildEscrowAddress(tradeId));
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [tradeId]);
-
-  const createdAt = useMemo(() => new Date().toLocaleString(), []);
-
-  return (
-    <div className="space-y-6">
-      <div className="rounded-lg border border-border-default bg-bg-card p-5">
-        <p className="text-xs uppercase tracking-wide text-text-muted">Trade ID</p>
-        <p className="mt-2 text-xl font-semibold text-text-primary font-mono">{tradeId}</p>
-        <p className="mt-3 text-sm text-text-secondary">
-          Escrow Contract:{" "}
-          {!escrowAddress ? (
-            <span className="text-text-muted">resolving on-chain...</span>
-          ) : (
-            <span className="font-mono text-gold">{escrowAddress}</span>
-          )}
-        </p>
-        <p className="mt-2 text-xs text-text-muted">Loaded: {createdAt}</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Suspense fallback={<BentoFallback label="Trade Status" />}>
-          <BentoCard tradeId={tradeId} cardKey="status" />
-        </Suspense>
-        <Suspense fallback={<BentoFallback label="Asset Pair" />}>
-          <BentoCard tradeId={tradeId} cardKey="asset" />
-        </Suspense>
-        <Suspense fallback={<BentoFallback label="Counterparty" />}>
-          <BentoCard tradeId={tradeId} cardKey="counterparty" />
-        </Suspense>
-      </div>
-    </div>
-  );
+function formatAddress(address: string) {
+  if (address.length <= 12) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export default function TradeDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { token, isAuthenticated } = useAuth();
   const tradeId = params?.id ?? "UNKNOWN";
+
+  const [trade, setTrade] = useState<TradeResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchTrade() {
+      if (!isAuthenticated || !token) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await api.trades.get(token, tradeId);
+        setTrade(response);
+      } catch (err) {
+        let errorMessage = "Failed to load trade";
+        if (err instanceof ApiError) {
+          errorMessage = err.message;
+        } else if (err instanceof Error) {
+          errorMessage = err.message;
+        }
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchTrade();
+  }, [token, isAuthenticated, tradeId]);
 
   return (
     <Shell
@@ -140,7 +99,74 @@ export default function TradeDetailPage() {
         </button>
       }
     >
-      <TradeDetailOrganism key={tradeId} tradeId={tradeId} />
+      {/* Loading state */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <svg className="animate-spin w-8 h-8 text-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+            <path d="M12 2a10 10 0 0 1 10 10" />
+          </svg>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && !loading && (
+        <div className="rounded-lg border border-status-danger/20 bg-red-500/10 px-4 py-3 text-center">
+          <p className="text-status-danger text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Trade details */}
+      {!loading && !error && trade && (
+        <div className="space-y-6">
+          <div className="rounded-lg border border-border-default bg-bg-card p-5">
+            <p className="text-xs uppercase tracking-wide text-text-muted">Trade ID</p>
+            <p className="mt-2 text-xl font-semibold text-text-primary font-mono">{trade.tradeId}</p>
+            <p className="mt-3 text-sm text-text-secondary">
+              Status: <span className="font-medium capitalize">{trade.status}</span>
+            </p>
+            <p className="mt-2 text-xs text-text-muted">Created: {formatDate(trade.createdAt)}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <BentoCard
+              title="Amount"
+              value={`${trade.amountUsdc} USDC`}
+              helper="Total trade value"
+            />
+            <BentoCard
+              title="Buyer"
+              value={formatAddress(trade.buyerAddress)}
+              helper="Buyer wallet address"
+            />
+            <BentoCard
+              title="Seller"
+              value={formatAddress(trade.sellerAddress)}
+              helper="Seller wallet address"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <BentoCard
+              title="Buyer Loss Ratio"
+              value={`${(trade.buyerLossBps / 100).toFixed(2)}%`}
+              helper="Buyer's share of loss in basis points"
+            />
+            <BentoCard
+              title="Seller Loss Ratio"
+              value={`${(trade.sellerLossBps / 100).toFixed(2)}%`}
+              helper="Seller's share of loss in basis points"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Not found state */}
+      {!loading && !error && !trade && (
+        <div className="rounded-lg border border-border-default bg-bg-card p-8 text-center">
+          <p className="text-text-muted">Trade not found</p>
+        </div>
+      )}
     </Shell>
   );
 }
