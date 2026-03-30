@@ -10,5 +10,7 @@ export { ActionBar } from "./ActionBar";
 export { TimelineEventItem } from "./TimelineEventItem";
 export { TransactionTimeline } from "./TransactionTimeline";
 export { TradeAmountRow } from "./TradeAmountRow";
+export { TradeListItem } from "./TradeListItem";
+export type { TradeListItemProps } from "./TradeListItem";
 export { DisputeVerificationModal } from "./DisputeVerificationModal";
 export type { DisputeVerificationModalProps } from "./DisputeVerificationModal";
