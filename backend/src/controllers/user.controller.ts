@@ -40,7 +40,8 @@ export async function updateMe(req: AuthRequest, res: Response) {
 }
 
 export async function getUserByAddress(req: AuthRequest, res: Response) {
-  const { address } = req.params;
+  const raw = req.params.address;
+  const address = Array.isArray(raw) ? raw[0] : raw;
   try {
     const user = await getPublicProfile(address);
     if (!user) {
