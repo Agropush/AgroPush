@@ -89,6 +89,44 @@ describe("IPFSService", () => {
                 expect((err as ServiceUnavailableError).status).toBe(503);
             }
         });
+
+        it("uploads exact buffer content (integrity)", async () => {
+            let captured: Buffer | null = null;
+            mockPinFileToIPFS.mockImplementation(async (stream: any) => {
+                const chunks: Buffer[] = [];
+                for await (const chunk of stream) {
+                    chunks.push(Buffer.from(chunk));
+                }
+                captured = Buffer.concat(chunks);
+                return { IpfsHash: "bafyintegrity" };
+            });
+
+            const data = Buffer.from("this is some test content");
+            const cid = await service.uploadFile(data, "video.mp4");
+            expect(cid).toBe("bafyintegrity");
+            expect(captured).not.toBeNull();
+            expect(captured!.equals(data)).toBe(true);
+        });
+
+        it("handles concurrent uploads without shared-state corruption", async () => {
+            let counter = 0;
+            mockPinFileToIPFS.mockImplementation(async (stream: any) => {
+                const id = ++counter;
+                // drain stream
+                for await (const _ of stream) {
+                    /* noop */
+                }
+                return { IpfsHash: `bafy${id}` };
+            });
+
+            const tasks = Array.from({ length: 5 }, (_, i) =>
+                service.uploadFile(Buffer.from(`payload-${i}`), `f${i}.mp4`)
+            );
+            const results = await Promise.all(tasks);
+            expect(results).toHaveLength(5);
+            expect(new Set(results).size).toBe(5);
+            expect(mockPinFileToIPFS).toHaveBeenCalledTimes(5);
+        });
     });
 
     describe("getFileUrl", () => {

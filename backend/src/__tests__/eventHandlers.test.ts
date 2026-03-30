@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { jest } from "@jest/globals";
 import { Prisma } from "@prisma/client";
 import {
   handleTradeCreated,
@@ -23,14 +23,14 @@ import {
 function createMockTx() {
   return {
     trade: {
-      upsert: vi.fn().mockResolvedValue({}),
+      upsert: jest.fn(async () => ({})),
     },
   } as unknown as Prisma.TransactionClient;
 }
 
 function makeParsedEvent(
   eventType: EventType,
-  overrides: Partial<ParsedEvent> = {}
+  overrides: Partial<ParsedEvent> = {},
 ): ParsedEvent {
   return {
     eventType,
@@ -55,7 +55,7 @@ describe("eventHandlers", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   /* ---------- handleTradeCreated ---------------------------------- */
@@ -96,7 +96,7 @@ describe("eventHandlers", () => {
             sellerAddress: "",
             amountUsdc: "0",
           }),
-        })
+        }),
       );
     });
   });
@@ -113,7 +113,7 @@ describe("eventHandlers", () => {
         expect.objectContaining({
           where: { tradeId: "test-trade-001" },
           update: expect.objectContaining({ status: TradeStatus.FUNDED }),
-        })
+        }),
       );
     });
   });
@@ -128,7 +128,7 @@ describe("eventHandlers", () => {
       expect(mockTx.trade.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           update: expect.objectContaining({ status: TradeStatus.DELIVERED }),
-        })
+        }),
       );
     });
   });
@@ -143,7 +143,7 @@ describe("eventHandlers", () => {
       expect(mockTx.trade.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           update: expect.objectContaining({ status: TradeStatus.COMPLETED }),
-        })
+        }),
       );
     });
   });
@@ -158,7 +158,7 @@ describe("eventHandlers", () => {
       expect(mockTx.trade.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           update: expect.objectContaining({ status: TradeStatus.DISPUTED }),
-        })
+        }),
       );
     });
   });
@@ -173,11 +173,11 @@ describe("eventHandlers", () => {
       expect(mockTx.trade.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           update: expect.objectContaining({ status: TradeStatus.COMPLETED }),
-        })
+        }),
       );
     });
 
-    it("maps DisputeResolved to COMPLETED in EVENT_TO_STATUS", () => {
+    it("maps DisputeResolved to COMPLETED in EVENT_TO_STATUS", async () => {
       expect(EVENT_TO_STATUS[EventType.DisputeResolved]).toBe(
         TradeStatus.COMPLETED,
       );
@@ -202,7 +202,7 @@ describe("eventHandlers", () => {
         expect(tx.trade.upsert).toHaveBeenCalledWith(
           expect.objectContaining({
             update: expect.objectContaining({ status: expectedStatus }),
-          })
+          }),
         );
       }
     });
@@ -228,7 +228,7 @@ describe("eventHandlers", () => {
         contractId: "CONTRACT_TEST_123",
         eventId: "evt-0",
         data: {},
-      };
+      } as any;
 
       await dispatchEvent(mockTx, event);
 

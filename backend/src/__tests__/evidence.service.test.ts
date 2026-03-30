@@ -4,6 +4,7 @@ import {
     EvidenceAccessDeniedError,
     EvidenceTradeNotFoundError,
 } from "../services/evidence.service";
+import { EvidenceValidationError } from "../services/evidence.service";
 
 const BUYER = "GCBUYER0000000000000000000000000000000000000000000000000";
 const SELLER = "GCSELLER000000000000000000000000000000000000000000000000";
@@ -45,6 +46,73 @@ describe("EvidenceService", () => {
             uploadFile: jest.fn(),
             getFileUrl: jest.fn((cid: string) => `https://ipfs.example/${cid}`),
         } as any);
+    });
+
+    describe("uploadVideoEvidence validation and access", () => {
+        it("accepts mp4 and creates record", async () => {
+            prisma.trade.findUnique = jest.fn().mockResolvedValue(mockTrade);
+            const created = { id: 42 } as any;
+            prisma.tradeEvidence.create = jest.fn().mockResolvedValue(created);
+
+            const mockIpfs = {
+                uploadFile: jest.fn().mockResolvedValue("bafycid"),
+                getFileUrl: (cid: string) => `https://gateway.test/ipfs/${cid}`,
+            } as any;
+            service = new EvidenceService(prisma, mockIpfs);
+
+            const file = {
+                buffer: Buffer.from("x"),
+                originalname: "video.mp4",
+                mimetype: "video/mp4",
+                size: 10,
+            } as unknown as Express.Multer.File;
+
+            const res = await service.uploadVideoEvidence("trade-001", BUYER, file);
+            expect(res.cid).toBe("bafycid");
+            expect(prisma.tradeEvidence.create).toHaveBeenCalled();
+        });
+
+        it("rejects unsupported file types", async () => {
+            prisma.trade.findUnique = jest.fn().mockResolvedValue(mockTrade);
+            const file = {
+                buffer: Buffer.from("x"),
+                originalname: "malware.exe",
+                mimetype: "application/octet-stream",
+                size: 10,
+            } as unknown as Express.Multer.File;
+
+            await expect(
+                service.uploadVideoEvidence("trade-001", BUYER, file)
+            ).rejects.toBeInstanceOf(EvidenceValidationError);
+        });
+
+        it("rejects files larger than 50MB", async () => {
+            prisma.trade.findUnique = jest.fn().mockResolvedValue(mockTrade);
+            const file = {
+                buffer: Buffer.alloc(51 * 1024 * 1024),
+                originalname: "big.mp4",
+                mimetype: "video/mp4",
+                size: 51 * 1024 * 1024,
+            } as unknown as Express.Multer.File;
+
+            await expect(
+                service.uploadVideoEvidence("trade-001", BUYER, file)
+            ).rejects.toBeInstanceOf(EvidenceValidationError);
+        });
+
+        it("blocks unauthorized uploader", async () => {
+            prisma.trade.findUnique = jest.fn().mockResolvedValue(mockTrade);
+            const file = {
+                buffer: Buffer.from("x"),
+                originalname: "video.mp4",
+                mimetype: "video/mp4",
+                size: 10,
+            } as unknown as Express.Multer.File;
+
+            await expect(
+                service.uploadVideoEvidence("trade-001", STRANGER, file)
+            ).rejects.toBeInstanceOf(EvidenceAccessDeniedError);
+        });
     });
 
     it("returns all evidence records for an authorized buyer", async () => {
