@@ -16,6 +16,12 @@ import { useFreighterIdentity } from "@/hooks/useFreighterIdentity";
 
 type Props = { disputeId: string };
 
+type ConfirmationModalState = {
+  isOpen: boolean;
+  sellerGetsBps: number | null;
+  splitLabel: string;
+};
+
 const DEFAULT_MEDIATOR_ADDRESSES = ["GEXAMPLEMEDIATORPUBLICKEY1"];
 
 const PINATA_GATEWAYS = [
@@ -33,6 +39,11 @@ export default function MediatorPanelClient({ disputeId }: Props) {
   const [txStatus, setTxStatus] = useState<string>("");
   const [isSubmittingTx, setIsSubmittingTx] = useState(false);
   const [activeGatewayIndex, setActiveGatewayIndex] = useState(0);
+  const [modal, setModal] = useState<ConfirmationModalState>({
+    isOpen: false,
+    sellerGetsBps: null,
+    splitLabel: "",
+  });
 
   const mediatorAddresses = useMemo(() => {
     const fromEnv = (process.env.NEXT_PUBLIC_MEDIATOR_WALLETS ?? "")
@@ -51,6 +62,26 @@ export default function MediatorPanelClient({ disputeId }: Props) {
   function buildExec(split: string) {
     const s = `soroban://execute?cmd=resolve_dispute&split=${split}&dispute=${disputeId}`;
     setExecString(s);
+  }
+
+  function openConfirmationModal(sellerGetsBps: number, splitLabel: string) {
+    setModal({
+      isOpen: true,
+      sellerGetsBps,
+      splitLabel,
+    });
+  }
+
+  function closeModal() {
+    setModal({
+      isOpen: false,
+      sellerGetsBps: null,
+      splitLabel: "",
+    });
+  }
+
+  function getBuyerSplit(sellerBps: number): number {
+    return 10000 - sellerBps;
   }
 
   async function executeResolution(sellerGetsBps: number) {
@@ -214,7 +245,7 @@ export default function MediatorPanelClient({ disputeId }: Props) {
 
               <button
                 disabled={!isMediator || isSubmittingTx}
-                onClick={() => void executeResolution(5000)}
+                onClick={() => openConfirmationModal(5000, "50/50")}
                 className="w-full rounded-md bg-emerald-700 text-white px-3 py-2 disabled:opacity-50"
               >
                 Resolve 50/50 On-Chain
@@ -222,7 +253,7 @@ export default function MediatorPanelClient({ disputeId }: Props) {
 
               <button
                 disabled={!isMediator || isSubmittingTx}
-                onClick={() => void executeResolution(7000)}
+                onClick={() => openConfirmationModal(7000, "70/30")}
                 className="w-full rounded-md bg-emerald-700 text-white px-3 py-2 disabled:opacity-50"
               >
                 Resolve 70/30 On-Chain
@@ -271,6 +302,88 @@ export default function MediatorPanelClient({ disputeId }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {modal.isOpen && modal.sellerGetsBps !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 space-y-4">
+            <h2 className="text-xl font-bold text-gray-900">
+              Confirm Resolution
+            </h2>
+
+            <div className="border rounded-lg bg-gray-50 p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">
+                  Trade ID:
+                </span>
+                <span className="text-sm font-mono text-gray-900">
+                  {disputeId}
+                </span>
+              </div>
+
+              <div className="border-t border-gray-200" />
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">
+                  Split:
+                </span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {modal.splitLabel}
+                </span>
+              </div>
+
+              <div className="border-t border-gray-200" />
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">
+                  Seller Receives:
+                </span>
+                <span className="text-sm font-semibold text-emerald-700">
+                  {(modal.sellerGetsBps / 100).toFixed(2)}%
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">
+                  Buyer Receives:
+                </span>
+                <span className="text-sm font-semibold text-blue-700">
+                  {(getBuyerSplit(modal.sellerGetsBps) / 100).toFixed(2)}%
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
+              <p className="text-xs text-yellow-800">
+                <span className="font-semibold">⚠️ Warning:</span> This action
+                is irreversible and will be recorded on-chain. Please review the
+                split details before confirming.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => closeModal()}
+                disabled={isSubmittingTx}
+                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  closeModal();
+                  void executeResolution(modal.sellerGetsBps);
+                }}
+                disabled={isSubmittingTx}
+                className="px-4 py-2 bg-emerald-700 text-white text-sm font-medium rounded-md hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {isSubmittingTx ? "Processing..." : "Confirm & Sign"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
