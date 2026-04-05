@@ -4,7 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+# cdylib is only needed for WASM deployment; rlib is used for tests on native
+crate-type = ["rlib"]
+
+[features]
+# Enable this when building the WASM contract artifact
+wasm = []
 
 [dependencies]
 soroban-sdk = "25.3.0"

@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(deprecated)] // env.events().publish() is deprecated in 25.x but .emit() isn't stable yet
 
 use soroban_sdk::{
     contract, contractimpl, contracttype, symbol_short, token, Address, Bytes, Env, String,
@@ -15,7 +16,7 @@ const INSTANCE_TTL_THRESHOLD: u32 = 50_000;
 const INSTANCE_TTL_EXTEND_TO: u32 = 50_000;
 
 // ---------------------------------------------------------------------------
-// Events
+// Constants
 // ---------------------------------------------------------------------------
 
 #[contracttype]
