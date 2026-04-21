@@ -728,6 +728,304 @@ Guidelines:
 
 ---
 
+## FE-BUILD-007 - Create Vault Management Page
+
+Description:
+Create the Vault management page from Figma. This page handles escrow fund management, partner network display, and vault overview metrics. Sidebar links to /vault but the route is missing.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P1
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Expected route: /vault
+- Current gap: No page file exists for /vault.
+
+Acceptance Criteria:
+- [ ] /vault route is implemented and renders a production page.
+- [ ] Fund management section with balance display and actions.
+- [ ] Partner network section showing connected parties and status.
+- [ ] Vault overview metrics and key statistics.
+- [ ] Page works in desktop and mobile breakpoints.
+
+Deliverables:
+- [ ] Vault management page and supporting components.
+- [ ] Proof of behavior via screenshots.
+
+NOTE:
+This issue will not be reviewed or approved without screenshots showing Vault rendering across required breakpoints with all key sections.
+
+Suggested Execution:
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-007-vault-management-page
+```
+
+2. Create and implement route:
+	- frontend/src/app/vault/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: vault page desktop
+	- [ ] Screenshot: vault page mobile
+	- [ ] Screenshot: fund management section
+	- [ ] Screenshot: partner network section
+	- [ ] Screenshot: vault metrics/overview
+
+4. Example commit message:
+
+```bash
+feat(frontend): create vault management page with funds and partner network
+```
+
+Guidelines:
+- Reuse existing design tokens and shell components.
+- Keep fund management actions clear and intuitive.
+- Ensure partner network status is visually distinct.
+- Include screenshots of all major sections in PR.
+
+---
+
+## FE-BUILD-008 - Implement Toast/Notification System
+
+Description:
+Implement a toast/notification system per Figma design patterns. Toasts display transient feedback for user actions (success, error, warning, info). Should support multiple notifications, auto-dismiss, and manual dismiss.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P2
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Current gap: No centralized toast system exists; feedback is scattered.
+
+Acceptance Criteria:
+- [ ] Toast component displays at specified position (top-right preferred per Figma).
+- [ ] Toast types: success, error, warning, info with distinct styling.
+- [ ] Auto-dismiss after configurable duration (default: 4s).
+- [ ] Manual dismiss via close button.
+- [ ] Multiple toasts stack without overlap.
+- [ ] Uses design tokens for colors and typography.
+
+Deliverables:
+- [ ] Toast component and notification context/provider.
+- [ ] Integration example in one existing page.
+- [ ] Screenshots showing all toast types and states.
+
+NOTE:
+This issue will not be reviewed or approved without screenshots demonstrating all toast types and auto-dismiss behavior.
+
+Suggested Execution:
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-008-toast-notification-system
+```
+
+2. Create toast components:
+	- frontend/src/components/ui/Toast.tsx
+	- frontend/src/components/ui/ToastContainer.tsx
+	- frontend/src/hooks/useToast.ts
+
+3. Tests/proof required:
+	- [ ] Screenshot: success toast
+	- [ ] Screenshot: error toast
+	- [ ] Screenshot: warning toast
+	- [ ] Screenshot: info toast
+	- [ ] Screenshot: multiple toasts stacked
+
+4. Example commit message:
+
+```bash
+feat(frontend): implement centralized toast notification system
+```
+
+Guidelines:
+- Keep animations smooth (fade in/out, slide).
+- Ensure accessibility with proper ARIA labels.
+- Use Tailwind tokens for consistent styling.
+- Include integration example in trades or dashboard.
+
+---
+
+## FE-BUILD-009 - Implement Modal/Dialog System
+
+Description:
+Implement a reusable modal/dialog component system per Figma design. Modals display focused content (confirmations, forms, alerts) with backdrop overlay and proper focus management.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P2
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Current gap: No centralized modal system.
+
+Acceptance Criteria:
+- [ ] Modal component with header, body, footer sections.
+- [ ] Backdrop overlay with configurable dimming.
+- [ ] Close button and ESC key support.
+- [ ] Focus trap and keyboard navigation.
+- [ ] Smooth open/close animations.
+- [ ] Responsive on mobile (full screen or centered card).
+
+Deliverables:
+- [ ] Modal component and composition patterns.
+- [ ] Hook for modal state management (useModal).
+- [ ] Screenshots of modal states and responsiveness.
+
+NOTE:
+This issue will not be reviewed or approved without desktop and mobile screenshots.
+
+Suggested Execution:
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-009-modal-dialog-system
+```
+
+2. Create modal components:
+	- frontend/src/components/ui/Modal.tsx
+	- frontend/src/hooks/useModal.ts
+
+3. Tests/proof required:
+	- [ ] Screenshot: modal desktop open state
+	- [ ] Screenshot: modal mobile open state
+	- [ ] Screenshot: modal with form content
+	- [ ] Screenshot: modal closed/backdrop
+
+4. Example commit message:
+
+```bash
+feat(frontend): implement reusable modal dialog system
+```
+
+Guidelines:
+- Follow ARIA best practices for accessibility.
+- Support both controlled and uncontrolled patterns.
+- Allow content composition (header, body, footer).
+- Include focus management and keyboard support.
+
+---
+
+## FE-BUILD-010 - Implement Form Validation and Error Pattern
+
+Description:
+Implement a consistent form validation and error display pattern per Figma. Includes inline field errors, form-level errors, and validation feedback states.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P2
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Current gap: Form validation patterns are inconsistent across pages.
+
+Acceptance Criteria:
+- [ ] Inline field error display with icon and message.
+- [ ] Form-level error summary section.
+- [ ] Required field indicators.
+- [ ] Success/valid state feedback.
+- [ ] Validation happens on blur and submit.
+- [ ] Uses design tokens for error colors and typography.
+
+Deliverables:
+- [ ] Form field wrapper component with error states.
+- [ ] Validation hook (useFormValidation or similar).
+- [ ] Example form with comprehensive error states.
+- [ ] Screenshots showing all validation states.
+
+NOTE:
+This issue will not be reviewed or approved without screenshots of empty, filled, error, and success field states.
+
+Suggested Execution:
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-010-form-validation-pattern
+```
+
+2. Create form validation components:
+	- frontend/src/components/ui/FormField.tsx
+	- frontend/src/hooks/useFormValidation.ts
+
+3. Tests/proof required:
+	- [ ] Screenshot: empty field
+	- [ ] Screenshot: filled field (valid)
+	- [ ] Screenshot: field with error message
+	- [ ] Screenshot: form-level error summary
+	- [ ] Screenshot: success state confirmation
+
+4. Example commit message:
+
+```bash
+feat(frontend): implement consistent form validation and error patterns
+```
+
+Guidelines:
+- Support both HTML5 validation and custom validators.
+- Show error state immediately on blur or after submit attempt.
+- Keep error messages concise and actionable.
+- Highlight invalid fields distinctly per design tokens.
+
+---
+
+## FE-BUILD-011 - Implement Loading and Skeleton States Across Pages
+
+Description:
+Implement consistent loading skeletons and loading states per Figma design. Applied to data-heavy pages (trades list, assets, dashboard, etc.) while content loads.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P2
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Current gap: Loading states vary; some pages lack skeleton feedback.
+
+Acceptance Criteria:
+- [ ] Skeleton components for list items, cards, tables.
+- [ ] Animated shimmer effect using design tokens.
+- [ ] Applied to trades, assets, dashboard initial load.
+- [ ] Loading state placeholder matches final layout (prevents layout shift).
+- [ ] Uses bg-color tokens for consistency.
+
+Deliverables:
+- [ ] Skeleton component variants (list, card, table row).
+- [ ] Applied to 2+ pages showing loading state.
+- [ ] Screenshots of loading states in action.
+
+NOTE:
+This issue will not be reviewed or approved without screenshots showing skeleton loading on populated pages.
+
+Suggested Execution:
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-011-loading-skeleton-states
+```
+
+2. Create skeleton components:
+	- frontend/src/components/ui/Skeleton.tsx
+	- frontend/src/components/ui/SkeletonList.tsx
+	- frontend/src/components/ui/SkeletonCard.tsx
+
+3. Apply to pages:
+	- frontend/src/app/trades/page.tsx (trades loading)
+	- frontend/src/app/assets/page.tsx (assets loading)
+	- frontend/src/app/dashboard/page.tsx (dashboard metrics loading)
+
+4. Tests/proof required:
+	- [ ] Screenshot: trades loading with skeletons
+	- [ ] Screenshot: assets loading with skeletons
+	- [ ] Screenshot: shimmer animation in action
+	- [ ] Screenshot: transition to loaded state
+
+5. Example commit message:
+
+```bash
+feat(frontend): add skeleton loading states to data-heavy pages
+```
+
+Guidelines:
+- Use shimmer animation with gradient overlay.
+- Match skeleton layout to final component layout.
+- Apply consistent pulse/shimmer timing.
+- Replace skeletons smoothly with real content.
+
+---
+
 ## Merge Gate for All Frontend Issues in This File
 
 For every issue above, screenshot evidence is a required merge gate. Any PR without screenshots of completed work should be considered incomplete and blocked from merge.
