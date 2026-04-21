@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Shell from "@/components/Shell";
 import { useAuth } from "@/hooks/useAuth";
 import { api, ApiError, TradeResponse } from "@/lib/api";
 
@@ -90,7 +89,7 @@ export default function TradesPage() {
   }
 
   return (
-    <Shell>
+    <div className="px-6 py-8 max-w-6xl mx-auto">
       {/* Page header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-text-primary">Trades</h1>
@@ -216,6 +215,6 @@ export default function TradesPage() {
           )}
         </>
       )}
-    </Shell>
+    </div>
   );
 }

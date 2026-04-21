@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 
 import "./globals.css";
-import { TopNav } from "@/components/TopNav";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppTopNav } from "@/components/layout/AppTopNav";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -41,7 +40,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} font-sans bg-primary text-text-primary antialiased`}
       >
         <AuthProvider>
-          <TopNav title="Amana" networkStatus="testnet" />
           <div className="flex flex-col h-screen">
             <AppTopNav />
             <div className="flex flex-1 overflow-hidden">
