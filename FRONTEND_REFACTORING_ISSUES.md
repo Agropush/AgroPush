@@ -30,6 +30,7 @@ Context: Refactoring pass based on implemented frontend review versus current de
 Type: Frontend Refactoring  
 Priority: P0  
 Scope: Remove duplicate shell/header rendering and keep one canonical app chrome pattern.
+Figma Design: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
 
 Files:
 - frontend/src/app/layout.tsx
@@ -52,6 +53,7 @@ Screenshot Requirement (Mandatory for Merge):
 Type: Frontend Refactoring  
 Priority: P0  
 Scope: Standardize active, hover, and focus behavior for sidebar links, top nav, and trades filter tabs.
+Figma Design: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
 
 Files:
 - frontend/src/components/layout/AppTopNav.tsx
@@ -74,6 +76,7 @@ Screenshot Requirement (Mandatory for Merge):
 Type: Frontend Refactoring  
 Priority: P1  
 Scope: Enforce typography system consistency for body text, headings, nav labels, and metadata.
+Figma Design: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
 
 Files:
 - frontend/src/app/layout.tsx
@@ -97,6 +100,7 @@ Screenshot Requirement (Mandatory for Merge):
 Type: Frontend Refactoring  
 Priority: P1  
 Scope: Normalize horizontal and vertical rhythm across app bars, sidebar, content gutters, and tab row.
+Figma Design: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
 
 Files:
 - frontend/src/components/TopNav.tsx
@@ -119,6 +123,7 @@ Screenshot Requirement (Mandatory for Merge):
 Type: Frontend Refactoring  
 Priority: P1  
 Scope: Replace ad-hoc shades with consistent token-based surfaces, borders, and elevation across trades and chrome.
+Figma Design: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
 
 Files:
 - frontend/tailwind.config.ts
@@ -141,6 +146,7 @@ Screenshot Requirement (Mandatory for Merge):
 Type: Frontend Refactoring  
 Priority: P2  
 Scope: Improve empty-state hierarchy, messaging clarity, and action guidance.
+Figma Design: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
 
 Files:
 - frontend/src/app/trades/page.tsx
@@ -161,6 +167,7 @@ Screenshot Requirement (Mandatory for Merge):
 Type: Frontend Refactoring  
 Priority: P1  
 Scope: Replace default root template content with product-aligned experience consistent with app design language.
+Figma Design: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
 
 Files:
 - frontend/src/app/page.tsx
