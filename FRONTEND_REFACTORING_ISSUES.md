@@ -1,7 +1,7 @@
-# Frontend Refactoring Issues (Figma Alignment)
+# Frontend Implementation Issues (Figma Design Realization)
 
 Date: 2026-04-21
-Context: Refactoring pass based on implemented frontend review versus current design direction.
+Context: Implementation pass to bring Figma design into project. Focus on design realization, not code cleanup.
 
 ## Confirmed Correctly Implemented
 
@@ -25,10 +25,10 @@ Context: Refactoring pass based on implemented frontend review versus current de
 
 ---
 
-## FE-REF-001 - Refactor to Single App Shell on Trades
+## FE-REF-001 - Implement Unified App Shell Layout
 
 Description:
-Refactor the Trades experience to use one canonical app shell only. Remove duplicate header and navigation layers so the page structure matches the intended product layout.
+Implement a single canonical app shell per Figma design. The Figma shows one top navigation and sidebar chrome serving all pages. Eliminate duplicate header/navigation layers so Trades and other pages use this consistent shell.
 
 Requirements and Context:
 - This is a frontend refactoring issue (Priority: P0).
@@ -81,10 +81,10 @@ Guidelines:
 
 ---
 
-## FE-REF-002 - Unify Navigation States Across App Chrome
+## FE-REF-002 - Implement Consistent Navigation State System
 
 Description:
-Refactor sidebar, top nav, and tab interactions so active, hover, and focus states are visually and behaviorally consistent.
+Implement navigation interaction states (active, hover, focus) per Figma design system. The Figma defines consistent patterns for nav state feedback. Align sidebar, top nav, and tabs to one unified state pattern.
 
 Requirements and Context:
 - This is a frontend refactoring issue (Priority: P0).
@@ -137,10 +137,10 @@ Guidelines:
 
 ---
 
-## FE-REF-003 - Standardize Typography Tokens and Hierarchy
+## FE-REF-003 - Implement Typography System from Figma
 
 Description:
-Refactor typography usage so headings, body text, metadata, and nav labels follow one consistent tokenized hierarchy.
+Implement the Figma typography system (heading sizes, body styles, metadata text). Enforce consistent tokenized hierarchy across headings, body text, metadata, and nav labels per design specification.
 
 Requirements and Context:
 - This is a frontend refactoring issue (Priority: P1).
@@ -195,10 +195,10 @@ Guidelines:
 
 ---
 
-## FE-REF-004 - Refactor Spacing and Layout Grid Consistency
+## FE-REF-004 - Implement Spacing Grid and Layout Rhythm from Figma
 
 Description:
-Refactor spacing and grid alignment across app bars, sidebar, content gutters, and tab row to create one consistent layout rhythm.
+Implement the Figma spacing grid and layout rhythm. Align app bars, sidebar, content gutters, and tab row to create one consistent spacing scale across all surfaces per design.
 
 Requirements and Context:
 - This is a frontend refactoring issue (Priority: P1).
@@ -251,10 +251,10 @@ Guidelines:
 
 ---
 
-## FE-REF-005 - Normalize Surface, Border, and Elevation Tokens
+## FE-REF-005 - Implement Surface and Elevation System from Figma
 
 Description:
-Refactor surfaces, borders, and elevation styles to remove ad-hoc values and enforce consistent token-based visual layering.
+Implement the Figma surface and elevation token system. Enforce token-based layering for table surfaces, status chips, sidebar chrome, and all UI containers per design specification.
 
 Requirements and Context:
 - This is a frontend refactoring issue (Priority: P1).
@@ -307,10 +307,10 @@ Guidelines:
 
 ---
 
-## FE-REF-006 - Improve Trades Empty State UX and Guidance
+## FE-REF-006 - Implement Trades Empty State Per Figma Design
 
 Description:
-Refactor the empty state on Trades for better messaging, hierarchy, and clear next-action guidance.
+Implement the empty state design shown in Figma for the Trades page. Add proper messaging hierarchy, visual guidance, and clear action CTA per design specification.
 
 Requirements and Context:
 - This is a frontend refactoring issue (Priority: P2).
@@ -359,10 +359,10 @@ Guidelines:
 
 ---
 
-## FE-REF-007 - Replace Root Template Page with Product-Aligned Entry
+## FE-REF-007 - Implement Root Landing Page from Figma
 
 Description:
-Refactor the root page by replacing template/demo content with a product-aligned entry experience that matches app design language.
+Implement the root landing page (/pages) per Figma design. Replace template content with the product-aligned entry experience designed for Amana, including proper branding, value proposition, and navigation per specification.
 
 Requirements and Context:
 - This is a frontend refactoring issue (Priority: P1).
