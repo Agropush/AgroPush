@@ -52,9 +52,27 @@ NOTE:
 This issue will not be reviewed or approved without screenshot evidence demonstrating that duplicate shell/header layers were removed.
 
 Suggested Execution:
-1. Remove page-level shell duplication from Trades route.
-2. Keep only canonical app layout chrome.
-3. Validate spacing/alignment against Figma.
+1. Fork and create a branch:
+
+```bash
+git checkout -b refactor/fe-ref-001-single-shell-trades
+```
+
+2. In affected files, implement the shell unification:
+	- frontend/src/app/layout.tsx
+	- frontend/src/components/Shell.tsx
+	- frontend/src/app/trades/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: before Trades view with duplicate chrome
+	- [ ] Screenshot: after Trades view with single canonical shell
+	- [ ] Screenshot: mobile layout parity
+
+4. Example commit message:
+
+```bash
+refactor(frontend): remove duplicate shell layers on trades page
+```
 
 Guidelines:
 - Follow existing frontend conventions.
@@ -90,9 +108,27 @@ NOTE:
 This issue will not be reviewed or approved without screenshots showing default, hover, active, and focus states.
 
 Suggested Execution:
-1. Define one navigation state pattern from Figma.
-2. Apply to sidebar, top nav, and trades tabs.
-3. Verify keyboard navigation and visual parity.
+1. Fork and create a branch:
+
+```bash
+git checkout -b refactor/fe-ref-002-unify-nav-states
+```
+
+2. In affected files, standardize active/hover/focus states:
+	- frontend/src/components/layout/AppTopNav.tsx
+	- frontend/src/components/layout/SideNavBar.tsx
+	- frontend/src/app/trades/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: default nav state
+	- [ ] Screenshot: hover nav state
+	- [ ] Screenshot: active and keyboard focus states
+
+4. Example commit message:
+
+```bash
+refactor(frontend): standardize navigation interaction states across app chrome
+```
 
 Guidelines:
 - Preserve existing routing behavior.
@@ -129,9 +165,28 @@ NOTE:
 This issue will not be reviewed or approved without screenshots that clearly show typography hierarchy before and after.
 
 Suggested Execution:
-1. Audit and map current typography to Figma scale.
-2. Update tokens and component usage.
-3. Verify hierarchy in top nav and trades views.
+1. Fork and create a branch:
+
+```bash
+git checkout -b refactor/fe-ref-003-typography-hierarchy
+```
+
+2. In affected files, align typography tokens and hierarchy:
+	- frontend/src/app/layout.tsx
+	- frontend/src/app/globals.css
+	- frontend/src/components/TopNav.tsx
+	- frontend/src/app/trades/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: top nav typography before/after
+	- [ ] Screenshot: trades typography before/after
+	- [ ] Screenshot: close-up of heading/body hierarchy
+
+4. Example commit message:
+
+```bash
+refactor(frontend): align typography tokens and hierarchy with figma
+```
 
 Guidelines:
 - Use token-driven classes only.
@@ -167,9 +222,27 @@ NOTE:
 This issue will not be reviewed or approved without desktop and mobile screenshots proving spacing and alignment consistency.
 
 Suggested Execution:
-1. Establish spacing baseline from Figma.
-2. Apply spacing tokens to top bars, tabs, and content blocks.
-3. Validate desktop and mobile breakpoints.
+1. Fork and create a branch:
+
+```bash
+git checkout -b refactor/fe-ref-004-spacing-grid-consistency
+```
+
+2. In affected files, normalize spacing and layout rhythm:
+	- frontend/src/components/TopNav.tsx
+	- frontend/src/components/layout/AppTopNav.tsx
+	- frontend/src/app/trades/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: desktop alignment before/after
+	- [ ] Screenshot: mobile spacing before/after
+	- [ ] Screenshot: header/content gutter alignment
+
+4. Example commit message:
+
+```bash
+refactor(frontend): normalize spacing scale and grid alignment across chrome
+```
 
 Guidelines:
 - Keep changes token-based.
@@ -205,9 +278,27 @@ NOTE:
 This issue will not be reviewed or approved without screenshots of rows, chips, and selected states showing token normalization.
 
 Suggested Execution:
-1. Audit conflicting surface/border/elevation styles.
-2. Map all to approved tokens.
-3. Validate contrast and state consistency.
+1. Fork and create a branch:
+
+```bash
+git checkout -b refactor/fe-ref-005-surface-border-elevation-tokens
+```
+
+2. In affected files, replace ad-hoc values with tokens:
+	- frontend/tailwind.config.ts
+	- frontend/src/app/trades/page.tsx
+	- frontend/src/components/layout/SideNavBar.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: table rows before/after
+	- [ ] Screenshot: status chips before/after
+	- [ ] Screenshot: selected tab and border/elevation consistency
+
+4. Example commit message:
+
+```bash
+refactor(frontend): normalize surface, border, and elevation token usage
+```
 
 Guidelines:
 - Avoid one-off colors in components.
@@ -241,9 +332,25 @@ NOTE:
 This issue will not be reviewed or approved without before/after screenshots of the empty state and action guidance.
 
 Suggested Execution:
-1. Refine empty-state copy and supporting content.
-2. Keep CTA prominence aligned with Figma.
-3. Validate hierarchy and spacing.
+1. Fork and create a branch:
+
+```bash
+git checkout -b refactor/fe-ref-006-trades-empty-state
+```
+
+2. In affected file, improve empty-state UX:
+	- frontend/src/app/trades/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: empty state before
+	- [ ] Screenshot: empty state after
+	- [ ] Screenshot: action guidance/CTA visibility
+
+4. Example commit message:
+
+```bash
+refactor(frontend): improve trades empty-state hierarchy and guidance
+```
 
 Guidelines:
 - Keep messaging concise.
@@ -277,9 +384,25 @@ NOTE:
 This issue will not be reviewed or approved without desktop and mobile screenshots proving final behavior.
 
 Suggested Execution:
-1. Remove template assets and placeholders.
-2. Implement product-aligned entry layout from Figma.
-3. Validate responsiveness and navigation clarity.
+1. Fork and create a branch:
+
+```bash
+git checkout -b refactor/fe-ref-007-root-entry-page
+```
+
+2. In affected file, replace template content with product-aligned entry screen:
+	- frontend/src/app/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: current template root page
+	- [ ] Screenshot: new root page desktop
+	- [ ] Screenshot: new root page mobile
+
+4. Example commit message:
+
+```bash
+refactor(frontend): replace root template with product-aligned entry page
+```
 
 Guidelines:
 - Keep page production-ready.
@@ -317,9 +440,25 @@ NOTE:
 This issue will not be reviewed or approved without screenshots showing complete Dashboard rendering across required breakpoints.
 
 Suggested Execution:
-1. Add frontend/src/app/dashboard/page.tsx.
-2. Build page sections according to Figma hierarchy.
-3. Validate responsive and auth states.
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-001-dashboard-page
+```
+
+2. Create and implement route:
+	- frontend/src/app/dashboard/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: dashboard desktop
+	- [ ] Screenshot: dashboard mobile
+	- [ ] Screenshot: authenticated and unauthenticated states (if applicable)
+
+4. Example commit message:
+
+```bash
+feat(frontend): create dashboard landing page from figma
+```
 
 Guidelines:
 - Reuse existing design tokens and shell components.
@@ -353,9 +492,25 @@ NOTE:
 This issue will not be reviewed or approved without screenshots showing populated and empty assets states.
 
 Suggested Execution:
-1. Add frontend/src/app/assets/page.tsx.
-2. Implement list container and item navigation to detail route.
-3. Add loading/empty/error states.
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-002-assets-index-page
+```
+
+2. Create and implement route:
+	- frontend/src/app/assets/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: assets list/grid populated state
+	- [ ] Screenshot: assets empty state
+	- [ ] Screenshot: item navigation to /assets/[id]
+
+4. Example commit message:
+
+```bash
+feat(frontend): add assets index page with list states and detail navigation
+```
 
 Guidelines:
 - Keep components composable and testable.
@@ -389,9 +544,25 @@ NOTE:
 This issue will not be reviewed or approved without screenshots proving desktop and mobile fidelity.
 
 Suggested Execution:
-1. Add frontend/src/app/reputation/page.tsx.
-2. Build key sections and supporting components.
-3. Validate states and responsive behavior.
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-003-reputation-page
+```
+
+2. Create and implement route:
+	- frontend/src/app/reputation/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: reputation page desktop
+	- [ ] Screenshot: reputation page mobile
+	- [ ] Screenshot: major metric/history sections
+
+4. Example commit message:
+
+```bash
+feat(frontend): create reputation page and key trust metric sections
+```
 
 Guidelines:
 - Maintain visual consistency with existing shell.
@@ -425,9 +596,25 @@ NOTE:
 This issue will not be reviewed or approved without screenshots showing all settings groups and interaction states.
 
 Suggested Execution:
-1. Add frontend/src/app/settings/page.tsx.
-2. Build grouped settings sections.
-3. Add validation/submit feedback states.
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-004-settings-page
+```
+
+2. Create and implement route:
+	- frontend/src/app/settings/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: all settings groups
+	- [ ] Screenshot: validation feedback
+	- [ ] Screenshot: success/failure save states
+
+4. Example commit message:
+
+```bash
+feat(frontend): create settings page with grouped preferences and feedback states
+```
 
 Guidelines:
 - Use shared form components where possible.
@@ -461,9 +648,25 @@ NOTE:
 This issue will not be reviewed or approved without screenshots covering list state and item-to-detail navigation proof.
 
 Suggested Execution:
-1. Add frontend/src/app/mediator/disputes/page.tsx.
-2. Implement list/filter UI and data hooks.
-3. Connect row/card actions to detail route.
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-005-mediator-disputes-index
+```
+
+2. Create and implement route:
+	- frontend/src/app/mediator/disputes/page.tsx
+
+3. Tests/proof required:
+	- [ ] Screenshot: disputes queue list state
+	- [ ] Screenshot: filters/status segmentation
+	- [ ] Screenshot: navigation into /mediator/disputes/[id]
+
+4. Example commit message:
+
+```bash
+feat(frontend): add mediator disputes index with filters and detail navigation
+```
 
 Guidelines:
 - Keep mediator role constraints visible in UI.
@@ -496,9 +699,27 @@ NOTE:
 This issue will not be reviewed or approved without screenshots showing each primary nav destination loading correctly.
 
 Suggested Execution:
-1. Verify all nav routes and their page implementations.
-2. Add missing routes or temporary guard pages where required.
-3. Restrict dev-only pages from production navigation.
+1. Fork and create a branch:
+
+```bash
+git checkout -b feat/fe-build-006-nav-destination-productionization
+```
+
+2. Implement route hygiene and nav destination completion:
+	- Verify sidebar and top nav destination pages
+	- Add missing page routes or guarded fallbacks
+	- Exclude/gate dev-test routes from production UX
+
+3. Tests/proof required:
+	- [ ] Screenshot: each primary nav destination loaded
+	- [ ] Screenshot: no dead-link destination remains
+	- [ ] Screenshot: dev-test routes not exposed in production navigation
+
+4. Example commit message:
+
+```bash
+feat(frontend): complete navigation destinations and remove production dead routes
+```
 
 Guidelines:
 - Keep navigation labels aligned with Figma IA.
