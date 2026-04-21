@@ -288,6 +288,225 @@ Guidelines:
 
 ---
 
-## Merge Gate for All Refactoring Issues
+## Additional Frontend Feature-Creation Issues (Not Refactor)
+
+These issues cover design sections that are not yet created in the current frontend route/component surface.
+
+## FE-BUILD-001 - Create Dashboard Landing Page
+
+Description:
+Create the full Dashboard page based on Figma. The sidebar already links to /dashboard, but the page route does not exist yet.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P0
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Expected route: /dashboard
+- Current gap: No page file exists for /dashboard.
+
+Acceptance Criteria:
+- [ ] /dashboard route is implemented and renders a production page.
+- [ ] Layout, sections, and CTA placement follow Figma.
+- [ ] Page works in desktop and mobile breakpoints.
+
+Deliverables:
+- [ ] Implementation of dashboard page and supporting components.
+- [ ] Proof of behavior via screenshots.
+
+NOTE:
+This issue will not be reviewed or approved without screenshots showing complete Dashboard rendering across required breakpoints.
+
+Suggested Execution:
+1. Add frontend/src/app/dashboard/page.tsx.
+2. Build page sections according to Figma hierarchy.
+3. Validate responsive and auth states.
+
+Guidelines:
+- Reuse existing design tokens and shell components.
+- Avoid adding temporary placeholder content.
+- Include before/after or new-page screenshots in PR.
+
+---
+
+## FE-BUILD-002 - Create Assets Index/List Page
+
+Description:
+Create the Assets listing/index screen from Figma. The top nav links to /assets and only /assets/[id] currently exists.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P0
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Expected route: /assets
+- Current gap: No page file exists for /assets index.
+
+Acceptance Criteria:
+- [ ] /assets route is implemented with list/grid and filtering/search as designed.
+- [ ] Item cards/rows link correctly to /assets/[id].
+- [ ] Empty, loading, and error states are implemented.
+
+Deliverables:
+- [ ] Assets index page and related UI components.
+- [ ] Proof of behavior via screenshots.
+
+NOTE:
+This issue will not be reviewed or approved without screenshots showing populated and empty assets states.
+
+Suggested Execution:
+1. Add frontend/src/app/assets/page.tsx.
+2. Implement list container and item navigation to detail route.
+3. Add loading/empty/error states.
+
+Guidelines:
+- Keep components composable and testable.
+- Match tokenized spacing and typography.
+- Include screenshots of state variations in PR.
+
+---
+
+## FE-BUILD-003 - Create Reputation Page
+
+Description:
+Create the Reputation experience from Figma. Sidebar currently links to /reputation, but the route has not been created.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P1
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Expected route: /reputation
+- Current gap: No page file exists for /reputation.
+
+Acceptance Criteria:
+- [ ] /reputation route is implemented and functional.
+- [ ] Metrics/cards/history blocks match Figma structure.
+- [ ] Mobile responsiveness and accessibility checks pass.
+
+Deliverables:
+- [ ] Reputation page implementation.
+- [ ] Proof of behavior via screenshots.
+
+NOTE:
+This issue will not be reviewed or approved without screenshots proving desktop and mobile fidelity.
+
+Suggested Execution:
+1. Add frontend/src/app/reputation/page.tsx.
+2. Build key sections and supporting components.
+3. Validate states and responsive behavior.
+
+Guidelines:
+- Maintain visual consistency with existing shell.
+- Prefer reusable stat/summary components.
+- Include screenshots of all key sections.
+
+---
+
+## FE-BUILD-004 - Create Settings Page
+
+Description:
+Create the Settings page from Figma for account, wallet, and app preferences. Sidebar links to /settings but route is missing.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P1
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Expected route: /settings
+- Current gap: No page file exists for /settings.
+
+Acceptance Criteria:
+- [ ] /settings route is implemented.
+- [ ] Form controls and preference groups match Figma structure.
+- [ ] Save/update feedback states exist (success, validation, failure).
+
+Deliverables:
+- [ ] Settings page and subcomponents.
+- [ ] Proof of behavior via screenshots.
+
+NOTE:
+This issue will not be reviewed or approved without screenshots showing all settings groups and interaction states.
+
+Suggested Execution:
+1. Add frontend/src/app/settings/page.tsx.
+2. Build grouped settings sections.
+3. Add validation/submit feedback states.
+
+Guidelines:
+- Use shared form components where possible.
+- Keep accessibility-first labels and hints.
+- Include screenshots for each settings section.
+
+---
+
+## FE-BUILD-005 - Create Mediator Disputes Index Page
+
+Description:
+Create the Mediator disputes listing/index page from Figma. Only mediator dispute detail route currently exists.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P1
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Expected route: /mediator/disputes
+- Current gap: No index page for mediator disputes queue.
+
+Acceptance Criteria:
+- [ ] /mediator/disputes index page exists with dispute cards/table.
+- [ ] Filters/status segmentation are implemented per design.
+- [ ] Clicking an item navigates to /mediator/disputes/[id].
+
+Deliverables:
+- [ ] Disputes queue page and navigation flow.
+- [ ] Proof of behavior via screenshots.
+
+NOTE:
+This issue will not be reviewed or approved without screenshots covering list state and item-to-detail navigation proof.
+
+Suggested Execution:
+1. Add frontend/src/app/mediator/disputes/page.tsx.
+2. Implement list/filter UI and data hooks.
+3. Connect row/card actions to detail route.
+
+Guidelines:
+- Keep mediator role constraints visible in UI.
+- Reuse existing status components.
+- Add screenshots for queue states and navigation.
+
+---
+
+## FE-BUILD-006 - Productionize Navigation Destinations and Remove Dead Routes
+
+Description:
+Ensure all visible navigation links point to implemented product pages and isolate dev-test pages from production navigation.
+
+Requirements and Context:
+- Type: Frontend Feature Creation
+- Priority: P1
+- Figma Link: https://www.figma.com/design/r4l1ciQ2AnyrOxVW9t5oCm/Amana?node-id=0-1&t=1MBz2FGXTfJSQ8ma-1
+- Current gap: Several nav destinations are missing while dev-test pages still exist.
+
+Acceptance Criteria:
+- [ ] Sidebar and top nav destinations resolve to working pages.
+- [ ] No user-facing dead-link route remains.
+- [ ] Dev-test pages are gated or excluded from production UX.
+
+Deliverables:
+- [ ] Navigation destination completion and route hygiene updates.
+- [ ] Proof of behavior via screenshots.
+
+NOTE:
+This issue will not be reviewed or approved without screenshots showing each primary nav destination loading correctly.
+
+Suggested Execution:
+1. Verify all nav routes and their page implementations.
+2. Add missing routes or temporary guard pages where required.
+3. Restrict dev-only pages from production navigation.
+
+Guidelines:
+- Keep navigation labels aligned with Figma IA.
+- Avoid introducing placeholder dead ends.
+- Include screenshot proof for each major route.
+
+---
+
+## Merge Gate for All Frontend Issues in This File
 
 For every issue above, screenshot evidence is a required merge gate. Any PR without screenshots of completed work should be considered incomplete and blocked from merge.
