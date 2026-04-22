@@ -2,8 +2,8 @@
 #![allow(deprecated)] // env.events().publish() is deprecated in 25.x but .emit() isn't stable yet
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, token, Address, Bytes, Env, String,
-    Symbol, Vec,
+    Address, Bytes, Env, String, Symbol, Vec, contract, contractimpl, contracttype, symbol_short,
+    token,
 };
 
 // ---------------------------------------------------------------------------
@@ -262,25 +262,40 @@ impl EscrowContract {
     // Admin / Setup
     // -----------------------------------------------------------------------
 
-    pub fn initialize(env: Env, admin: Address, usdc_contract: Address, treasury: Address, fee_bps: u32) {
+    pub fn initialize(
+        env: Env,
+        admin: Address,
+        usdc_contract: Address,
+        treasury: Address,
+        fee_bps: u32,
+    ) {
         if env.storage().instance().has(&DataKey::Initialized) {
             panic!("AlreadyInitialized");
         }
         assert!(fee_bps <= 10_000, "fee_bps must not exceed 10000");
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::UsdcContract, &usdc_contract);
+        env.storage()
+            .instance()
+            .set(&DataKey::UsdcContract, &usdc_contract);
         env.storage().instance().set(&DataKey::Treasury, &treasury);
         env.storage().instance().set(&DataKey::FeeBps, &fee_bps);
         env.storage().instance().set(&DataKey::Initialized, &true);
         Self::bump_instance_ttl(&env);
-        env.events().publish(("amana", "initialized"), InitializedEvent { admin, fee_bps });
+        env.events().publish(
+            ("amana", "initialized"),
+            InitializedEvent { admin, fee_bps },
+        );
     }
 
     /// Register a single legacy mediator address. Only the admin may call this.
     /// For multi-mediator support, prefer `add_mediator()`.
     pub fn set_mediator(env: Env, mediator: Address) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Not initialized");
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
         admin.require_auth();
         env.storage().instance().set(&DataKey::Mediator, &mediator);
         // Also register in the per-address registry so is_mediator() reflects this.
@@ -296,14 +311,20 @@ impl EscrowContract {
     /// Add `mediator_address` to the approved mediator registry.
     /// Admin only. Emits `MediatorAdded`.
     pub fn add_mediator(env: Env, mediator_address: Address) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Not initialized");
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
         admin.require_auth();
         env.storage()
             .persistent()
             .set(&DataKey::MediatorRegistry(mediator_address.clone()), &true);
         env.events().publish(
             (symbol_short!("MEDADD"), mediator_address.clone()),
-            MediatorAddedEvent { mediator: mediator_address },
+            MediatorAddedEvent {
+                mediator: mediator_address,
+            },
         );
     }
 
@@ -312,7 +333,11 @@ impl EscrowContract {
     /// ensuring revocation is complete regardless of which registration path was used.
     /// Admin only. Emits `MediatorRemoved`.
     pub fn remove_mediator(env: Env, mediator_address: Address) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Not initialized");
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
         admin.require_auth();
 
         // Clear registry slot (add_mediator / set_mediator dual-writes here)
@@ -321,7 +346,11 @@ impl EscrowContract {
             .remove(&DataKey::MediatorRegistry(mediator_address.clone()));
 
         // Clear legacy slot if it points to the same address
-        if let Some(legacy) = env.storage().instance().get::<_, Address>(&DataKey::Mediator) {
+        if let Some(legacy) = env
+            .storage()
+            .instance()
+            .get::<_, Address>(&DataKey::Mediator)
+        {
             if legacy == mediator_address {
                 env.storage().instance().remove(&DataKey::Mediator);
             }
@@ -329,7 +358,9 @@ impl EscrowContract {
 
         env.events().publish(
             (symbol_short!("MEDREM"), mediator_address.clone()),
-            MediatorRemovedEvent { mediator: mediator_address },
+            MediatorRemovedEvent {
+                mediator: mediator_address,
+            },
         );
     }
 
@@ -359,7 +390,11 @@ impl EscrowContract {
             return mediator;
         }
 
-        if let Some(legacy_mediator) = env.storage().instance().get::<_, Address>(&DataKey::Mediator) {
+        if let Some(legacy_mediator) = env
+            .storage()
+            .instance()
+            .get::<_, Address>(&DataKey::Mediator)
+        {
             if legacy_mediator == mediator {
                 return mediator;
             }
@@ -372,15 +407,36 @@ impl EscrowContract {
     // Trade lifecycle
     // -----------------------------------------------------------------------
 
-    pub fn create_trade(env: Env, buyer: Address, seller: Address, amount: i128, buyer_loss_bps: u32, seller_loss_bps: u32) -> u64 {
+    pub fn create_trade(
+        env: Env,
+        buyer: Address,
+        seller: Address,
+        amount: i128,
+        buyer_loss_bps: u32,
+        seller_loss_bps: u32,
+    ) -> u64 {
         assert!(amount > 0, "amount must be greater than zero");
-        assert!(buyer != seller, "buyer and seller must be different addresses");
-        assert!(buyer_loss_bps + seller_loss_bps == 10_000, "loss ratios must sum to 10000 (100%)");
-        let next_id: u64 = env.storage().instance().get(&NEXT_TRADE_ID).unwrap_or(1_u64);
+        assert!(
+            buyer != seller,
+            "buyer and seller must be different addresses"
+        );
+        assert!(
+            buyer_loss_bps + seller_loss_bps == 10_000,
+            "loss ratios must sum to 10000 (100%)"
+        );
+        let next_id: u64 = env
+            .storage()
+            .instance()
+            .get(&NEXT_TRADE_ID)
+            .unwrap_or(1_u64);
         let ledger_seq = env.ledger().sequence() as u64;
         let trade_id = (ledger_seq << 32) | next_id;
         env.storage().instance().set(&NEXT_TRADE_ID, &(next_id + 1));
-        let usdc_address: Address = env.storage().instance().get(&DataKey::UsdcContract).expect("Not initialized");
+        let usdc_address: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::UsdcContract)
+            .expect("Not initialized");
         let now = env.ledger().timestamp();
         let trade = Trade {
             trade_id,
@@ -396,18 +452,33 @@ impl EscrowContract {
             buyer_loss_bps,
             seller_loss_bps,
         };
-        env.storage().persistent().set(&DataKey::Trade(trade_id), &trade);
-        env.events().publish((symbol_short!("TRDCRT"), trade_id), TradeCreatedEvent {
-            trade_id, buyer, seller, amount
-        });
+        env.storage()
+            .persistent()
+            .set(&DataKey::Trade(trade_id), &trade);
+        env.events().publish(
+            (symbol_short!("TRDCRT"), trade_id),
+            TradeCreatedEvent {
+                trade_id,
+                buyer,
+                seller,
+                amount,
+            },
+        );
         Self::bump_instance_ttl(&env);
         trade_id
     }
 
     pub fn deposit(env: Env, trade_id: u64) {
         let key = DataKey::Trade(trade_id);
-        let mut trade: Trade = env.storage().persistent().get(&key).expect("Trade not found");
-        assert!(matches!(trade.status, TradeStatus::Created), "Trade must be in Created status");
+        let mut trade: Trade = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("Trade not found");
+        assert!(
+            matches!(trade.status, TradeStatus::Created),
+            "Trade must be in Created status"
+        );
         trade.buyer.require_auth();
         let token_client = token::Client::new(&env, &trade.token);
         token_client.transfer(&trade.buyer, &env.current_contract_address(), &trade.amount);
@@ -416,30 +487,52 @@ impl EscrowContract {
         trade.funded_at = Some(now);
         trade.updated_at = now;
         env.storage().persistent().set(&key, &trade);
-        env.events().publish((symbol_short!("TRDFND"), trade_id), TradeFundedEvent {
-            trade_id, amount: trade.amount
-        });
+        env.events().publish(
+            (symbol_short!("TRDFND"), trade_id),
+            TradeFundedEvent {
+                trade_id,
+                amount: trade.amount,
+            },
+        );
     }
 
     pub fn cancel_trade(env: Env, trade_id: u64, caller: Address) {
         let key = DataKey::Trade(trade_id);
-        let mut trade: Trade = env.storage().persistent().get(&key).expect("Trade not found");
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Not initialized");
+        let mut trade: Trade = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("Trade not found");
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
 
         caller.require_auth();
 
         if matches!(trade.status, TradeStatus::Created) {
-            assert!(caller == trade.buyer || caller == trade.seller || caller == admin, "Unauthorized caller");
+            assert!(
+                caller == trade.buyer || caller == trade.seller || caller == admin,
+                "Unauthorized caller"
+            );
             Self::execute_cancellation(&env, &mut trade, 0, caller);
         } else if matches!(trade.status, TradeStatus::Funded) {
             let amount = trade.amount;
             if caller == admin {
                 Self::execute_cancellation(&env, &mut trade, amount, admin);
             } else {
-                assert!(caller == trade.buyer || caller == trade.seller, "Unauthorized caller");
+                assert!(
+                    caller == trade.buyer || caller == trade.seller,
+                    "Unauthorized caller"
+                );
 
                 let req_key = DataKey::CancelRequest(trade_id);
-                let mut requests: (bool, bool) = env.storage().persistent().get(&req_key).unwrap_or((false, false));
+                let mut requests: (bool, bool) = env
+                    .storage()
+                    .persistent()
+                    .get(&req_key)
+                    .unwrap_or((false, false));
 
                 if caller == trade.buyer {
                     requests.0 = true;
@@ -464,12 +557,18 @@ impl EscrowContract {
     fn execute_cancellation(env: &Env, trade: &mut Trade, refund_amount: i128, caller: Address) {
         if refund_amount > 0 {
             let token_client = token::Client::new(env, &trade.token);
-            token_client.transfer(&env.current_contract_address(), &trade.buyer, &refund_amount);
+            token_client.transfer(
+                &env.current_contract_address(),
+                &trade.buyer,
+                &refund_amount,
+            );
         }
 
         trade.status = TradeStatus::Cancelled;
         trade.updated_at = env.ledger().timestamp();
-        env.storage().persistent().set(&DataKey::Trade(trade.trade_id), trade);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Trade(trade.trade_id), trade);
 
         env.events().publish(
             (symbol_short!("TRDCAN"), trade.trade_id),
@@ -483,30 +582,56 @@ impl EscrowContract {
 
     pub fn confirm_delivery(env: Env, trade_id: u64) {
         let key = DataKey::Trade(trade_id);
-        let mut trade: Trade = env.storage().persistent().get(&key).expect("Trade not found");
+        let mut trade: Trade = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("Trade not found");
         trade.buyer.require_auth();
-        assert!(matches!(trade.status, TradeStatus::Funded), "Trade must be funded");
+        assert!(
+            matches!(trade.status, TradeStatus::Funded),
+            "Trade must be funded"
+        );
         let now = env.ledger().timestamp();
         trade.status = TradeStatus::Delivered;
         trade.delivered_at = Some(now);
         trade.updated_at = now;
         env.storage().persistent().set(&key, &trade);
-        env.events().publish((symbol_short!("DELCNF"), trade_id), DeliveryConfirmedEvent {
-            trade_id, delivered_at: now
-        });
+        env.events().publish(
+            (symbol_short!("DELCNF"), trade_id),
+            DeliveryConfirmedEvent {
+                trade_id,
+                delivered_at: now,
+            },
+        );
     }
 
     pub fn release_funds(env: Env, trade_id: u64) {
         let key = DataKey::Trade(trade_id);
-        let mut trade: Trade = env.storage().persistent().get(&key).expect("Trade not found");
-        assert!(matches!(trade.status, TradeStatus::Delivered), "Trade must be delivered");
+        let mut trade: Trade = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("Trade not found");
+        assert!(
+            matches!(trade.status, TradeStatus::Delivered),
+            "Trade must be delivered"
+        );
         trade.buyer.require_auth();
         let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0);
-        let treasury: Address = env.storage().instance().get(&DataKey::Treasury).expect("Treasury not set");
+        let treasury: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Treasury)
+            .expect("Treasury not set");
         let fee_amount = (trade.amount * (fee_bps as i128)) / BPS_DIVISOR;
         let seller_amount = trade.amount - fee_amount;
         let token_client = token::Client::new(&env, &trade.token);
-        token_client.transfer(&env.current_contract_address(), &trade.seller, &seller_amount);
+        token_client.transfer(
+            &env.current_contract_address(),
+            &trade.seller,
+            &seller_amount,
+        );
         if fee_amount > 0 {
             token_client.transfer(&env.current_contract_address(), &treasury, &fee_amount);
         }
@@ -514,9 +639,14 @@ impl EscrowContract {
         trade.status = TradeStatus::Completed;
         trade.updated_at = now;
         env.storage().persistent().set(&key, &trade);
-        env.events().publish((symbol_short!("RELSD"), trade_id), FundsReleasedEvent {
-            trade_id, seller_amount, fee_amount
-        });
+        env.events().publish(
+            (symbol_short!("RELSD"), trade_id),
+            FundsReleasedEvent {
+                trade_id,
+                seller_amount,
+                fee_amount,
+            },
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -539,7 +669,11 @@ impl EscrowContract {
         assert!(reason_hash.len() > 0, "reason_hash must not be empty");
 
         let key = DataKey::Trade(trade_id);
-        let mut trade: Trade = env.storage().persistent().get(&key).expect("Trade not found");
+        let mut trade: Trade = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("Trade not found");
 
         assert!(
             matches!(trade.status, TradeStatus::Funded),
@@ -570,7 +704,11 @@ impl EscrowContract {
         // Emit on-chain event
         env.events().publish(
             (symbol_short!("DISINI"), trade_id),
-            DisputeInitiatedEvent { trade_id, initiator, reason_hash },
+            DisputeInitiatedEvent {
+                trade_id,
+                initiator,
+                reason_hash,
+            },
         );
     }
 
@@ -609,7 +747,7 @@ impl EscrowContract {
     ///   fee        = seller_raw * fee_bps / 10_000
     ///   seller_net = seller_raw - fee
     ///
-    /// Example (total=10_000, seller_gets_bps=7_000, buyer_loss_bps=6_000, 
+    /// Example (total=10_000, seller_gets_bps=7_000, buyer_loss_bps=6_000,
     ///          seller_loss_bps=4_000, fee_bps=100):
     ///   loss_bps         = 3_000 (30% loss)
     ///   buyer_loss       = 10_000 * 3_000 * 6_000 / 100_000_000 = 1_800
@@ -633,7 +771,11 @@ impl EscrowContract {
 
         // 2. Load and validate trade
         let key = DataKey::Trade(trade_id);
-        let mut trade: Trade = env.storage().persistent().get(&key).expect("Trade not found");
+        let mut trade: Trade = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("Trade not found");
         assert!(
             matches!(trade.status, TradeStatus::Disputed),
             "Trade must be in Disputed status"
@@ -641,22 +783,27 @@ impl EscrowContract {
 
         // 3. Load fee config
         let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0);
-        let treasury: Address = env.storage().instance().get(&DataKey::Treasury).expect("Treasury not set");
+        let treasury: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Treasury)
+            .expect("Treasury not set");
 
         // 4. Payout math with loss-sharing
         let total = trade.amount;
-        
+
         // Calculate the loss amount in basis points
         let loss_bps = BPS_DIVISOR - (seller_gets_bps as i128);
-        
+
         // Distribute loss according to agreed ratios
         // seller_loss = total * loss_bps * seller_loss_bps / (10_000 * 10_000)
-        let seller_loss_amount = (total * loss_bps * (trade.seller_loss_bps as i128)) / (BPS_DIVISOR * BPS_DIVISOR);
-        
+        let seller_loss_amount =
+            (total * loss_bps * (trade.seller_loss_bps as i128)) / (BPS_DIVISOR * BPS_DIVISOR);
+
         // Calculate raw payouts
         let seller_raw = total - seller_loss_amount;
         let buyer_refund = total - seller_raw;
-        
+
         // Deduct platform fee from seller's portion only
         let fee = (seller_raw * (fee_bps as i128)) / BPS_DIVISOR;
         let seller_net = seller_raw - fee;
@@ -713,7 +860,11 @@ impl EscrowContract {
         caller.require_auth();
 
         let key = DataKey::Trade(trade_id);
-        let trade: Trade = env.storage().persistent().get(&key).expect("Trade not found");
+        let trade: Trade = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("Trade not found");
 
         assert!(
             matches!(trade.status, TradeStatus::Disputed),
@@ -723,7 +874,7 @@ impl EscrowContract {
         // Allow buyer, seller, or any mediator to submit evidence
         let is_party = caller == trade.buyer || caller == trade.seller;
         let is_mediator = Self::is_mediator(env.clone(), caller.clone());
-        
+
         assert!(
             is_party || is_mediator,
             "Only buyer, seller, or mediator can submit evidence"
@@ -750,7 +901,9 @@ impl EscrowContract {
         evidence_list.push_back(record);
 
         // Store updated list
-        env.storage().persistent().set(&evidence_key, &evidence_list);
+        env.storage()
+            .persistent()
+            .set(&evidence_key, &evidence_list);
 
         // For backward compatibility with legacy get_evidence API, we'll create
         // a simple Bytes representation. Since Soroban String doesn't easily convert
@@ -805,7 +958,11 @@ impl EscrowContract {
         assert!(ipfs_cid.len() > 0, "ipfs_cid must not be empty");
 
         let key = DataKey::Trade(trade_id);
-        let trade: Trade = env.storage().persistent().get(&key).expect("Trade not found");
+        let trade: Trade = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("Trade not found");
 
         assert!(
             matches!(trade.status, TradeStatus::Funded | TradeStatus::Disputed),
@@ -834,7 +991,11 @@ impl EscrowContract {
 
         env.events().publish(
             (symbol_short!("VIDPRF"), trade_id),
-            VideoProofSubmittedEvent { trade_id, submitter, ipfs_cid },
+            VideoProofSubmittedEvent {
+                trade_id,
+                submitter,
+                ipfs_cid,
+            },
         );
     }
 
@@ -891,7 +1052,10 @@ impl EscrowContract {
 
     pub fn get_trade(env: Env, trade_id: u64) -> Trade {
         let key = DataKey::Trade(trade_id);
-        env.storage().persistent().get(&key).expect("Trade not found")
+        env.storage()
+            .persistent()
+            .get(&key)
+            .expect("Trade not found")
     }
 }
 
@@ -903,7 +1067,7 @@ impl EscrowContract {
 mod test {
     use super::*;
     use soroban_sdk::testutils::{Address as _, Deployer as _, Ledger as _};
-    use soroban_sdk::{token, Address, Env};
+    use soroban_sdk::{Address, Env, token};
 
     // -----------------------------------------------------------------------
     // Helpers
@@ -913,7 +1077,11 @@ mod test {
         String::from_str(env, reason)
     }
 
-    fn setup_funded_trade(env: &Env, amount: i128, fee_bps: u32) -> (Address, Address, Address, Address, Address, u64) {
+    fn setup_funded_trade(
+        env: &Env,
+        amount: i128,
+        fee_bps: u32,
+    ) -> (Address, Address, Address, Address, Address, u64) {
         let contract_id = env.register(EscrowContract, ());
         let client = EscrowContractClient::new(env, &contract_id);
         let admin = Address::generate(env);
@@ -933,7 +1101,11 @@ mod test {
         (contract_id, usdc_id, buyer, seller, treasury, trade_id)
     }
 
-    fn setup_disputed_trade(env: &Env, amount: i128, fee_bps: u32) -> (Address, Address, Address, Address, Address, u64) {
+    fn setup_disputed_trade(
+        env: &Env,
+        amount: i128,
+        fee_bps: u32,
+    ) -> (Address, Address, Address, Address, Address, u64) {
         let (contract_id, usdc_id, buyer, seller, treasury, trade_id) =
             setup_funded_trade(env, amount, fee_bps);
         let client = EscrowContractClient::new(env, &contract_id);
@@ -1037,11 +1209,17 @@ mod test {
 
         let trade_id_1 = client.create_trade(&buyer, &seller, &1000_i128, &5000_u32, &5000_u32);
         client.cancel_trade(&trade_id_1, &buyer);
-        assert!(matches!(client.get_trade(&trade_id_1).status, TradeStatus::Cancelled));
+        assert!(matches!(
+            client.get_trade(&trade_id_1).status,
+            TradeStatus::Cancelled
+        ));
 
         let trade_id_2 = client.create_trade(&buyer, &seller, &1000_i128, &5000_u32, &5000_u32);
         client.cancel_trade(&trade_id_2, &seller);
-        assert!(matches!(client.get_trade(&trade_id_2).status, TradeStatus::Cancelled));
+        assert!(matches!(
+            client.get_trade(&trade_id_2).status,
+            TradeStatus::Cancelled
+        ));
     }
 
     #[test]
@@ -1065,10 +1243,16 @@ mod test {
         client.deposit(&trade_id);
 
         client.cancel_trade(&trade_id, &buyer);
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Funded));
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Funded
+        ));
 
         client.cancel_trade(&trade_id, &seller);
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Cancelled));
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Cancelled
+        ));
     }
 
     #[test]
@@ -1153,7 +1337,10 @@ mod test {
         assert_eq!(token_readonly.balance(&seller), 9_900);
         assert_eq!(token_readonly.balance(&treasury), 100);
         assert_eq!(token_readonly.balance(&client.address), 0);
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Completed));
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Completed
+        ));
     }
 
     // -----------------------------------------------------------------------
@@ -1320,7 +1507,10 @@ mod test {
         assert_eq!(token.balance(&treasury), 75, "fee mismatch");
         assert_eq!(token.balance(&buyer), 2_500, "buyer_refund mismatch");
         assert_eq!(token.balance(&client.address), 0, "escrow should be empty");
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Completed));
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Completed
+        ));
     }
 
     /// Full seller payout: seller gets 10_000 bps (100%), buyer gets nothing.
@@ -1379,7 +1569,11 @@ mod test {
 
         let token = token::Client::new(&env, &usdc_id);
         assert_eq!(token.balance(&buyer), 5_000, "buyer_refund mismatch");
-        assert_eq!(token.balance(&seller), 4_950, "seller should receive their share minus fee");
+        assert_eq!(
+            token.balance(&seller),
+            4_950,
+            "seller should receive their share minus fee"
+        );
         assert_eq!(token.balance(&treasury), 50, "fee on seller's portion");
         assert_eq!(token.balance(&client.address), 0);
     }
@@ -1418,7 +1612,10 @@ mod test {
         client.add_mediator(&mediator);
 
         client.resolve_dispute(&trade_id, &mediator, &5_000_u32);
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Completed));
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Completed
+        ));
     }
 
     #[test]
@@ -1435,7 +1632,10 @@ mod test {
         client.set_mediator(&mediator);
 
         client.resolve_dispute(&trade_id, &mediator, &5_000_u32);
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Completed));
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Completed
+        ));
     }
 
     // -----------------------------------------------------------------------
@@ -1465,29 +1665,37 @@ mod test {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let usdc_id = env.register_stellar_asset_contract(admin.clone());
-        
+
         client.initialize(&admin, &usdc_id, &treasury, &100);
-        
+
         let amount = 10_000_i128;
         let token_client = token::StellarAssetClient::new(&env, &usdc_id);
         token_client.mint(&buyer, &amount);
-        
+
         // Create trade with 70/30 loss-sharing (buyer bears 70% of loss)
         let trade_id = client.create_trade(&buyer, &seller, &amount, &7000_u32, &3000_u32);
         client.deposit(&trade_id);
         let reason = mock_reason(&env, "Qm70_30LossSharing");
         client.initiate_dispute(&trade_id, &buyer, &reason);
-        
+
         let mediator = Address::generate(&env);
         client.set_mediator(&mediator);
-        
+
         // Mediator rules 60% for seller (40% loss)
         client.resolve_dispute(&trade_id, &mediator, &6_000_u32);
-        
+
         let token = token::Client::new(&env, &usdc_id);
-        assert_eq!(token.balance(&seller), 8_712, "seller_net with 70/30 loss-sharing");
+        assert_eq!(
+            token.balance(&seller),
+            8_712,
+            "seller_net with 70/30 loss-sharing"
+        );
         assert_eq!(token.balance(&treasury), 88, "fee on seller portion");
-        assert_eq!(token.balance(&buyer), 1_200, "buyer_refund with 70/30 loss-sharing");
+        assert_eq!(
+            token.balance(&buyer),
+            1_200,
+            "buyer_refund with 70/30 loss-sharing"
+        );
         assert_eq!(token.balance(&client.address), 0);
     }
 
@@ -1514,29 +1722,37 @@ mod test {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let usdc_id = env.register_stellar_asset_contract(admin.clone());
-        
+
         client.initialize(&admin, &usdc_id, &treasury, &100);
-        
+
         let amount = 10_000_i128;
         let token_client = token::StellarAssetClient::new(&env, &usdc_id);
         token_client.mint(&buyer, &amount);
-        
+
         // Buyer bears all loss (100/0)
         let trade_id = client.create_trade(&buyer, &seller, &amount, &10000_u32, &0_u32);
         client.deposit(&trade_id);
         let reason = mock_reason(&env, "QmBuyerBearsAllLoss");
         client.initiate_dispute(&trade_id, &seller, &reason);
-        
+
         let mediator = Address::generate(&env);
         client.set_mediator(&mediator);
-        
+
         // Mediator rules 80% for seller
         client.resolve_dispute(&trade_id, &mediator, &8_000_u32);
-        
+
         let token = token::Client::new(&env, &usdc_id);
-        assert_eq!(token.balance(&seller), 9_900, "seller gets full amount minus fee");
+        assert_eq!(
+            token.balance(&seller),
+            9_900,
+            "seller gets full amount minus fee"
+        );
         assert_eq!(token.balance(&treasury), 100, "fee on full seller amount");
-        assert_eq!(token.balance(&buyer), 0, "buyer gets nothing when bearing all loss");
+        assert_eq!(
+            token.balance(&buyer),
+            0,
+            "buyer gets nothing when bearing all loss"
+        );
         assert_eq!(token.balance(&client.address), 0);
     }
 
@@ -1563,29 +1779,33 @@ mod test {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let usdc_id = env.register_stellar_asset_contract(admin.clone());
-        
+
         client.initialize(&admin, &usdc_id, &treasury, &100);
-        
+
         let amount = 10_000_i128;
         let token_client = token::StellarAssetClient::new(&env, &usdc_id);
         token_client.mint(&buyer, &amount);
-        
+
         // Seller bears all loss (0/100)
         let trade_id = client.create_trade(&buyer, &seller, &amount, &0_u32, &10000_u32);
         client.deposit(&trade_id);
         let reason = mock_reason(&env, "QmSellerBearsAllLoss");
         client.initiate_dispute(&trade_id, &buyer, &reason);
-        
+
         let mediator = Address::generate(&env);
         client.set_mediator(&mediator);
-        
+
         // Mediator rules 30% for seller (70% loss)
         client.resolve_dispute(&trade_id, &mediator, &3_000_u32);
-        
+
         let token = token::Client::new(&env, &usdc_id);
         assert_eq!(token.balance(&seller), 2_970, "seller bears all loss");
         assert_eq!(token.balance(&treasury), 30, "fee on seller portion");
-        assert_eq!(token.balance(&buyer), 7_000, "buyer gets most back when seller bears all loss");
+        assert_eq!(
+            token.balance(&buyer),
+            7_000,
+            "buyer gets most back when seller bears all loss"
+        );
         assert_eq!(token.balance(&client.address), 0);
     }
 
@@ -1612,25 +1832,25 @@ mod test {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let usdc_id = env.register_stellar_asset_contract(admin.clone());
-        
+
         client.initialize(&admin, &usdc_id, &treasury, &100);
-        
+
         let amount = 10_000_i128;
         let token_client = token::StellarAssetClient::new(&env, &usdc_id);
         token_client.mint(&buyer, &amount);
-        
+
         // 20/80 loss-sharing (seller bears 80% of loss)
         let trade_id = client.create_trade(&buyer, &seller, &amount, &2000_u32, &8000_u32);
         client.deposit(&trade_id);
         let reason = mock_reason(&env, "QmSmallLoss80Seller");
         client.initiate_dispute(&trade_id, &seller, &reason);
-        
+
         let mediator = Address::generate(&env);
         client.set_mediator(&mediator);
-        
+
         // Mediator rules 90% for seller (small 10% loss)
         client.resolve_dispute(&trade_id, &mediator, &9_000_u32);
-        
+
         let token = token::Client::new(&env, &usdc_id);
         assert_eq!(token.balance(&seller), 9_108, "seller with small loss");
         assert_eq!(token.balance(&treasury), 92, "fee on seller portion");
@@ -1716,7 +1936,11 @@ mod test {
         client.resolve_dispute(&trade_id, &mediator, &10_000_u32);
 
         let token = token::Client::new(&env, &usdc_id);
-        assert_eq!(token.balance(&seller), 9_900, "seller gets full amount minus fee");
+        assert_eq!(
+            token.balance(&seller),
+            9_900,
+            "seller gets full amount minus fee"
+        );
         assert_eq!(token.balance(&treasury), 100, "fee on full amount");
         assert_eq!(token.balance(&buyer), 0, "buyer gets nothing when no loss");
         assert_eq!(token.balance(&client.address), 0);
@@ -1757,7 +1981,9 @@ mod test {
         assert_eq!(trade.updated_at, 5_000);
 
         // DisputeRecord must be stored with correct fields
-        let record = client.get_dispute_record(&trade_id).expect("DisputeRecord must be present");
+        let record = client
+            .get_dispute_record(&trade_id)
+            .expect("DisputeRecord must be present");
         assert_eq!(record.initiator, buyer);
         assert_eq!(record.reason_hash, reason);
         assert_eq!(record.disputed_at, 5_000);
@@ -1791,7 +2017,9 @@ mod test {
         let trade = client.get_trade(&trade_id);
         assert!(matches!(trade.status, TradeStatus::Disputed));
 
-        let record = client.get_dispute_record(&trade_id).expect("DisputeRecord must be present");
+        let record = client
+            .get_dispute_record(&trade_id)
+            .expect("DisputeRecord must be present");
         assert_eq!(record.initiator, seller);
         assert_eq!(record.reason_hash, reason);
         assert_eq!(record.disputed_at, 9_000);
@@ -1896,7 +2124,7 @@ mod test {
 
         let trade_id = client.create_trade(&buyer, &seller, &amount, &5000_u32, &5000_u32);
         client.deposit(&trade_id);
-        
+
         // Complete the trade successfully
         client.confirm_delivery(&trade_id);
         client.release_funds(&trade_id);
@@ -1931,23 +2159,35 @@ mod test {
         env.ledger().with_mut(|l| l.timestamp = 12_345);
 
         // Initiate dispute with detailed IPFS hash
-        let ipfs_reason = soroban_sdk::String::from_str(
-            &env, 
-            "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG"
-        );
+        let ipfs_reason =
+            soroban_sdk::String::from_str(&env, "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG");
         client.initiate_dispute(&trade_id, &seller, &ipfs_reason);
 
         // Verify dispute record is stored correctly
-        let record = client.get_dispute_record(&trade_id).expect("DisputeRecord must exist");
-        
+        let record = client
+            .get_dispute_record(&trade_id)
+            .expect("DisputeRecord must exist");
+
         assert_eq!(record.initiator, seller, "Initiator should be seller");
-        assert_eq!(record.reason_hash, ipfs_reason, "Reason hash should match IPFS CID");
-        assert_eq!(record.disputed_at, 12_345, "Timestamp should be recorded correctly");
+        assert_eq!(
+            record.reason_hash, ipfs_reason,
+            "Reason hash should match IPFS CID"
+        );
+        assert_eq!(
+            record.disputed_at, 12_345,
+            "Timestamp should be recorded correctly"
+        );
 
         // Verify trade status changed
         let trade = client.get_trade(&trade_id);
-        assert!(matches!(trade.status, TradeStatus::Disputed), "Trade should be in Disputed status");
-        assert_eq!(trade.updated_at, 12_345, "Trade updated_at should match dispute timestamp");
+        assert!(
+            matches!(trade.status, TradeStatus::Disputed),
+            "Trade should be in Disputed status"
+        );
+        assert_eq!(
+            trade.updated_at, 12_345,
+            "Trade updated_at should match dispute timestamp"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -1973,7 +2213,10 @@ mod test {
         let client = EscrowContractClient::new(&env, &contract_id);
         let mediator = Address::generate(&env);
 
-        assert!(!client.is_mediator(&mediator), "must be false before adding");
+        assert!(
+            !client.is_mediator(&mediator),
+            "must be false before adding"
+        );
         client.add_mediator(&mediator);
         assert!(client.is_mediator(&mediator), "must be true after adding");
     }
@@ -1991,7 +2234,10 @@ mod test {
         assert!(client.is_mediator(&mediator));
 
         client.remove_mediator(&mediator);
-        assert!(!client.is_mediator(&mediator), "must be false after removal");
+        assert!(
+            !client.is_mediator(&mediator),
+            "must be false after removal"
+        );
     }
 
     /// is_mediator returns false for an unknown address without panic.
@@ -2172,7 +2418,8 @@ mod test {
         client.initialize(&admin, &usdc_id, &treasury, &fee_bps);
         let token_mint = token::StellarAssetClient::new(env, &usdc_id);
         token_mint.mint(&buyer, &amount);
-        let trade_id = client.create_trade(&buyer, &seller, &amount, &buyer_loss_bps, &seller_loss_bps);
+        let trade_id =
+            client.create_trade(&buyer, &seller, &amount, &buyer_loss_bps, &seller_loss_bps);
         client.deposit(&trade_id);
         let reason = soroban_sdk::String::from_str(env, "QmInvariantTest");
         client.initiate_dispute(&trade_id, &buyer, &reason);
@@ -2180,7 +2427,11 @@ mod test {
         client.set_mediator(&mediator);
         client.resolve_dispute(&trade_id, &mediator, &seller_gets_bps);
         let tok = token::Client::new(env, &usdc_id);
-        (tok.balance(&seller), tok.balance(&buyer), tok.balance(&treasury))
+        (
+            tok.balance(&seller),
+            tok.balance(&buyer),
+            tok.balance(&treasury),
+        )
     }
 
     /// Conservation invariant: seller_net + buyer_refund + fee == total for all inputs.
@@ -2287,8 +2538,10 @@ mod test {
                 invoke: &soroban_sdk::testutils::MockAuthInvoke {
                     contract: &contract_id,
                     fn_name: "confirm_delivery",
-                    args: soroban_sdk::vec![&env,
-                        soroban_sdk::IntoVal::<Env, soroban_sdk::Val>::into_val(&trade_id, &env)],
+                    args: soroban_sdk::vec![
+                        &env,
+                        soroban_sdk::IntoVal::<Env, soroban_sdk::Val>::into_val(&trade_id, &env)
+                    ],
                     sub_invokes: &[],
                 },
             }])
@@ -2331,8 +2584,10 @@ mod test {
                 invoke: &soroban_sdk::testutils::MockAuthInvoke {
                     contract: &contract_id,
                     fn_name: "release_funds",
-                    args: soroban_sdk::vec![&env,
-                        soroban_sdk::IntoVal::<Env, soroban_sdk::Val>::into_val(&trade_id, &env)],
+                    args: soroban_sdk::vec![
+                        &env,
+                        soroban_sdk::IntoVal::<Env, soroban_sdk::Val>::into_val(&trade_id, &env)
+                    ],
                     sub_invokes: &[],
                 },
             }])
@@ -2402,7 +2657,10 @@ mod test {
         client.deposit(&trade_id);
         // Admin cancels immediately without needing both parties
         client.cancel_trade(&trade_id, &admin);
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Cancelled));
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Cancelled
+        ));
         let tok = token::Client::new(&env, &usdc_id);
         assert_eq!(tok.balance(&buyer), amount, "buyer must be fully refunded");
         assert_eq!(tok.balance(&client.address), 0, "escrow must be empty");
@@ -2417,7 +2675,7 @@ mod test {
 mod integration_tests {
     use super::*;
     use soroban_sdk::testutils::{Address as _, Ledger as _};
-    use soroban_sdk::{token, Address, Env};
+    use soroban_sdk::{Address, Env, token};
 
     // -----------------------------------------------------------------------
     // Shared setup
@@ -2458,7 +2716,16 @@ mod integration_tests {
             client.initialize(&admin, &usdc_id, &treasury, &fee_bps);
             client.set_mediator(&mediator);
 
-            Setup { env, contract_id, usdc_id, admin, buyer, seller, treasury, mediator }
+            Setup {
+                env,
+                contract_id,
+                usdc_id,
+                admin,
+                buyer,
+                seller,
+                treasury,
+                mediator,
+            }
         }
 
         fn client(&self) -> EscrowContractClient<'_> {
@@ -2503,7 +2770,10 @@ mod integration_tests {
         let trade_id = client.create_trade(&s.buyer, &s.seller, &amount, &5000_u32, &5000_u32);
 
         let trade = client.get_trade(&trade_id);
-        assert!(matches!(trade.status, TradeStatus::Created), "Step 1: must be Created");
+        assert!(
+            matches!(trade.status, TradeStatus::Created),
+            "Step 1: must be Created"
+        );
         assert_eq!(trade.created_at, 1_000);
 
         // ── Step 2: Fund (deposit) ──────────────────────────────────────────
@@ -2511,10 +2781,21 @@ mod integration_tests {
         client.deposit(&trade_id);
 
         let trade = client.get_trade(&trade_id);
-        assert!(matches!(trade.status, TradeStatus::Funded), "Step 2: must be Funded");
+        assert!(
+            matches!(trade.status, TradeStatus::Funded),
+            "Step 2: must be Funded"
+        );
         assert_eq!(trade.funded_at, Some(2_000));
-        assert_eq!(token.balance(&s.contract_id), amount, "Step 2: escrow must hold funds");
-        assert_eq!(token.balance(&s.buyer), 0, "Step 2: buyer balance must be 0");
+        assert_eq!(
+            token.balance(&s.contract_id),
+            amount,
+            "Step 2: escrow must hold funds"
+        );
+        assert_eq!(
+            token.balance(&s.buyer),
+            0,
+            "Step 2: buyer balance must be 0"
+        );
 
         // ── Step 3: Raise dispute ───────────────────────────────────────────
         s.env.ledger().with_mut(|l| l.timestamp = 3_000);
@@ -2522,9 +2803,16 @@ mod integration_tests {
         client.initiate_dispute(&trade_id, &s.buyer, &dispute_reason);
 
         let trade = client.get_trade(&trade_id);
-        assert!(matches!(trade.status, TradeStatus::Disputed), "Step 3: must be Disputed");
+        assert!(
+            matches!(trade.status, TradeStatus::Disputed),
+            "Step 3: must be Disputed"
+        );
         // Funds still locked in escrow
-        assert_eq!(token.balance(&s.contract_id), amount, "Step 3: funds must still be in escrow");
+        assert_eq!(
+            token.balance(&s.contract_id),
+            amount,
+            "Step 3: funds must still be in escrow"
+        );
 
         // ── Step 4: Submit evidence (both parties) ──────────────────────────
         s.env.ledger().with_mut(|l| l.timestamp = 4_000);
@@ -2538,14 +2826,21 @@ mod integration_tests {
 
         // Evidence retrievable on-chain via new list API
         let evidence_list = client.get_evidence_list(&trade_id);
-        assert_eq!(evidence_list.len(), 2, "Step 4: should have 2 evidence records");
+        assert_eq!(
+            evidence_list.len(),
+            2,
+            "Step 4: should have 2 evidence records"
+        );
         assert_eq!(evidence_list.get(0).unwrap().submitter, s.buyer);
         assert_eq!(evidence_list.get(0).unwrap().ipfs_hash, buyer_ipfs);
         assert_eq!(evidence_list.get(1).unwrap().submitter, s.seller);
         assert_eq!(evidence_list.get(1).unwrap().ipfs_hash, seller_ipfs);
-        
+
         // Trade still Disputed while mediator reviews
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Disputed));
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Disputed
+        ));
 
         // ── Step 5: Mediator resolves — 50/50 ──────────────────────────────
         s.env.ledger().with_mut(|l| l.timestamp = 5_000);
@@ -2553,7 +2848,10 @@ mod integration_tests {
 
         // ── Step 6: Verify final state ──────────────────────────────────────
         let trade = client.get_trade(&trade_id);
-        assert!(matches!(trade.status, TradeStatus::Completed), "Step 6: must be Completed");
+        assert!(
+            matches!(trade.status, TradeStatus::Completed),
+            "Step 6: must be Completed"
+        );
         assert_eq!(trade.updated_at, 5_000);
 
         // With 50/50 loss-sharing and 50/50 mediator ruling:
@@ -2561,10 +2859,10 @@ mod integration_tests {
         // seller_raw = 10,000 - 2,500 = 7,500
         // fee = 75, seller_net = 7,425
         // buyer_refund = 2,500
-        assert_eq!(token.balance(&s.seller),      7_425, "seller_net mismatch");
-        assert_eq!(token.balance(&s.treasury),       75, "fee mismatch");
-        assert_eq!(token.balance(&s.buyer),       2_500, "buyer_refund mismatch");
-        assert_eq!(token.balance(&s.contract_id),      0, "escrow must be empty");
+        assert_eq!(token.balance(&s.seller), 7_425, "seller_net mismatch");
+        assert_eq!(token.balance(&s.treasury), 75, "fee mismatch");
+        assert_eq!(token.balance(&s.buyer), 2_500, "buyer_refund mismatch");
+        assert_eq!(token.balance(&s.contract_id), 0, "escrow must be empty");
     }
 
     // -----------------------------------------------------------------------
@@ -2585,19 +2883,25 @@ mod integration_tests {
         // Create → Fund
         s.env.ledger().with_mut(|l| l.timestamp = 1_000);
         let trade_id = create_and_fund(&s, amount);
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Funded));
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Funded
+        ));
 
         // Seller initiates dispute this time
         s.env.ledger().with_mut(|l| l.timestamp = 2_000);
         let dispute_reason = soroban_sdk::String::from_str(&s.env, "QmSellerDisputeReason");
         client.initiate_dispute(&trade_id, &s.seller, &dispute_reason);
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Disputed));
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Disputed
+        ));
 
         // Seller submits evidence; buyer submits none
         let ipfs_hash = soroban_sdk::String::from_str(&s.env, "QmSellerProofOfDelivery");
         let desc_hash = soroban_sdk::String::from_str(&s.env, "Delivery confirmation");
         client.submit_evidence(&trade_id, &s.seller, &ipfs_hash, &desc_hash);
-        
+
         let evidence_list = client.get_evidence_list(&trade_id);
         assert_eq!(evidence_list.len(), 1);
         assert_eq!(evidence_list.get(0).unwrap().submitter, s.seller);
@@ -2606,11 +2910,14 @@ mod integration_tests {
         s.env.ledger().with_mut(|l| l.timestamp = 3_000);
         client.resolve_dispute(&trade_id, &s.mediator, &10_000_u32);
 
-        assert!(matches!(client.get_trade(&trade_id).status, TradeStatus::Completed));
-        assert_eq!(token.balance(&s.seller),      9_900);
-        assert_eq!(token.balance(&s.treasury),      100);
-        assert_eq!(token.balance(&s.buyer),             0);
-        assert_eq!(token.balance(&s.contract_id),       0);
+        assert!(matches!(
+            client.get_trade(&trade_id).status,
+            TradeStatus::Completed
+        ));
+        assert_eq!(token.balance(&s.seller), 9_900);
+        assert_eq!(token.balance(&s.treasury), 100);
+        assert_eq!(token.balance(&s.buyer), 0);
+        assert_eq!(token.balance(&s.contract_id), 0);
     }
 
     // -----------------------------------------------------------------------
@@ -2640,10 +2947,10 @@ mod integration_tests {
 
         client.resolve_dispute(&trade_id, &s.mediator, &0_u32);
 
-        assert_eq!(token.balance(&s.buyer),         5_000);
-        assert_eq!(token.balance(&s.seller),        4_950);
-        assert_eq!(token.balance(&s.treasury),         50);
-        assert_eq!(token.balance(&s.contract_id),       0);
+        assert_eq!(token.balance(&s.buyer), 5_000);
+        assert_eq!(token.balance(&s.seller), 4_950);
+        assert_eq!(token.balance(&s.treasury), 50);
+        assert_eq!(token.balance(&s.contract_id), 0);
     }
 
     // -----------------------------------------------------------------------
@@ -2749,22 +3056,22 @@ mod integration_tests {
         let s = Setup::new(10_000, 100);
         let client = s.client();
         let trade_id = create_and_fund(&s, 10_000);
-        
+
         // Raise dispute
         s.env.ledger().with_mut(|l| l.timestamp = 1_000);
         let dispute_reason = soroban_sdk::String::from_str(&s.env, "QmBuyerEvidenceDispute");
         client.initiate_dispute(&trade_id, &s.buyer, &dispute_reason);
-        
+
         // Buyer submits evidence
         s.env.ledger().with_mut(|l| l.timestamp = 2_000);
         let ipfs_hash = soroban_sdk::String::from_str(&s.env, "QmBuyerEvidence123");
         let desc_hash = soroban_sdk::String::from_str(&s.env, "Payment proof");
         client.submit_evidence(&trade_id, &s.buyer, &ipfs_hash, &desc_hash);
-        
+
         // Verify evidence was stored
         let evidence_list = client.get_evidence_list(&trade_id);
         assert_eq!(evidence_list.len(), 1);
-        
+
         let record = evidence_list.get(0).unwrap();
         assert_eq!(record.submitter, s.buyer);
         assert_eq!(record.ipfs_hash, ipfs_hash);
@@ -2778,58 +3085,58 @@ mod integration_tests {
         let s = Setup::new(10_000, 100);
         let client = s.client();
         let trade_id = create_and_fund(&s, 10_000);
-        
+
         // Raise dispute
         s.env.ledger().with_mut(|l| l.timestamp = 1_000);
         let dispute_reason = soroban_sdk::String::from_str(&s.env, "QmMultiEvidenceDispute");
         client.initiate_dispute(&trade_id, &s.buyer, &dispute_reason);
-        
+
         // Buyer submits first evidence
         s.env.ledger().with_mut(|l| l.timestamp = 2_000);
         let buyer_ipfs_1 = soroban_sdk::String::from_str(&s.env, "QmBuyerEvidence1");
         let buyer_desc_1 = soroban_sdk::String::from_str(&s.env, "Payment receipt");
         client.submit_evidence(&trade_id, &s.buyer, &buyer_ipfs_1, &buyer_desc_1);
-        
+
         // Seller submits evidence
         s.env.ledger().with_mut(|l| l.timestamp = 3_000);
         let seller_ipfs = soroban_sdk::String::from_str(&s.env, "QmSellerEvidence1");
         let seller_desc = soroban_sdk::String::from_str(&s.env, "Shipping label");
         client.submit_evidence(&trade_id, &s.seller, &seller_ipfs, &seller_desc);
-        
+
         // Buyer submits second evidence
         s.env.ledger().with_mut(|l| l.timestamp = 4_000);
         let buyer_ipfs_2 = soroban_sdk::String::from_str(&s.env, "QmBuyerEvidence2");
         let buyer_desc_2 = soroban_sdk::String::from_str(&s.env, "Communication logs");
         client.submit_evidence(&trade_id, &s.buyer, &buyer_ipfs_2, &buyer_desc_2);
-        
+
         // Mediator submits evidence
         s.env.ledger().with_mut(|l| l.timestamp = 5_000);
         let mediator_ipfs = soroban_sdk::String::from_str(&s.env, "QmMediatorAnalysis");
         let mediator_desc = soroban_sdk::String::from_str(&s.env, "Case analysis");
         client.submit_evidence(&trade_id, &s.mediator, &mediator_ipfs, &mediator_desc);
-        
+
         // Verify all evidence is stored in chronological order
         let evidence_list = client.get_evidence_list(&trade_id);
         assert_eq!(evidence_list.len(), 4, "Should have 4 evidence records");
-        
+
         // Check first entry (buyer)
         let record_0 = evidence_list.get(0).unwrap();
         assert_eq!(record_0.submitter, s.buyer);
         assert_eq!(record_0.ipfs_hash, buyer_ipfs_1);
         assert_eq!(record_0.submitted_at, 2_000);
-        
+
         // Check second entry (seller)
         let record_1 = evidence_list.get(1).unwrap();
         assert_eq!(record_1.submitter, s.seller);
         assert_eq!(record_1.ipfs_hash, seller_ipfs);
         assert_eq!(record_1.submitted_at, 3_000);
-        
+
         // Check third entry (buyer again)
         let record_2 = evidence_list.get(2).unwrap();
         assert_eq!(record_2.submitter, s.buyer);
         assert_eq!(record_2.ipfs_hash, buyer_ipfs_2);
         assert_eq!(record_2.submitted_at, 4_000);
-        
+
         // Check fourth entry (mediator)
         let record_3 = evidence_list.get(3).unwrap();
         assert_eq!(record_3.submitter, s.mediator);
@@ -2909,7 +3216,7 @@ mod integration_tests {
         let s = Setup::new(10_000, 100);
         let client = s.client();
         let trade_id = create_and_fund(&s, 10_000);
-        
+
         // Raise dispute
         s.env.ledger().with_mut(|l| l.timestamp = 1_000);
         let dispute_reason = soroban_sdk::String::from_str(&s.env, "QmDisputeReason");
@@ -2932,17 +3239,25 @@ mod integration_tests {
         let s = Setup::new(10_000, 100);
         let client = s.client();
         let trade_id = create_and_fund(&s, 10_000);
-        
+
         // Trade is Funded, no dispute raised
         let evidence_list = client.get_evidence_list(&trade_id);
-        assert_eq!(evidence_list.len(), 0, "Evidence list should be empty for non-disputed trade");
-        
+        assert_eq!(
+            evidence_list.len(),
+            0,
+            "Evidence list should be empty for non-disputed trade"
+        );
+
         // Confirm delivery (no dispute path)
         client.confirm_delivery(&trade_id);
 
         // Evidence list should still be empty
         let evidence_list_after = client.get_evidence_list(&trade_id);
-        assert_eq!(evidence_list_after.len(), 0, "Evidence list should remain empty after delivery confirmation");
+        assert_eq!(
+            evidence_list_after.len(),
+            0,
+            "Evidence list should remain empty after delivery confirmation"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -2963,13 +3278,13 @@ mod integration_tests {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let usdc_id = env.register_stellar_asset_contract(admin.clone());
-        
+
         client.initialize(&admin, &usdc_id, &treasury, &100);
-        
+
         let amount = 10_000_i128;
         let token_client = token::StellarAssetClient::new(&env, &usdc_id);
         token_client.mint(&buyer, &amount);
-        
+
         // Create trade with 30/70 loss-sharing (seller bears 70% of loss)
         let trade_id = client.create_trade(&buyer, &seller, &amount, &3000_u32, &7000_u32);
         client.deposit(&trade_id);
@@ -2992,11 +3307,19 @@ mod integration_tests {
         let token = token::Client::new(&env, &usdc_id);
         assert_eq!(token.balance(&seller), 5_742, "seller with 70% loss burden");
         assert_eq!(token.balance(&treasury), 58, "fee on seller portion");
-        assert_eq!(token.balance(&buyer), 4_200, "buyer refund with 30% loss burden");
+        assert_eq!(
+            token.balance(&buyer),
+            4_200,
+            "buyer refund with 30% loss burden"
+        );
         assert_eq!(token.balance(&client.address), 0, "escrow empty");
 
         // Verify total adds up
-        assert_eq!(5_742 + 58 + 4_200, 10_000, "total must equal original amount");
+        assert_eq!(
+            5_742 + 58 + 4_200,
+            10_000,
+            "total must equal original amount"
+        );
     }
 
     /// Test complete dispute lifecycle with evidence submission and resolution
@@ -3013,72 +3336,82 @@ mod integration_tests {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let usdc_id = env.register_stellar_asset_contract(admin.clone());
-        
+
         client.initialize(&admin, &usdc_id, &treasury, &100);
-        
+
         let amount = 50_000_i128;
         let token_client = token::StellarAssetClient::new(&env, &usdc_id);
         token_client.mint(&buyer, &amount);
-        
+
         // Step 1: Create trade with 50/50 loss-sharing
         env.ledger().with_mut(|l| l.timestamp = 1_000);
         let trade_id = client.create_trade(&buyer, &seller, &amount, &5000_u32, &5000_u32);
         let trade = client.get_trade(&trade_id);
         assert!(matches!(trade.status, TradeStatus::Created));
         assert_eq!(trade.amount, amount);
-        
+
         // Step 2: Buyer deposits funds
         env.ledger().with_mut(|l| l.timestamp = 2_000);
         client.deposit(&trade_id);
         let trade = client.get_trade(&trade_id);
         assert!(matches!(trade.status, TradeStatus::Funded));
         assert_eq!(token_client.balance(&contract_id), amount);
-        
+
         // Step 3: Buyer initiates dispute with reason
         env.ledger().with_mut(|l| l.timestamp = 3_000);
-        let dispute_reason = soroban_sdk::String::from_str(&env, "QmDisputeReason_GoodsNotAsDescribed");
+        let dispute_reason =
+            soroban_sdk::String::from_str(&env, "QmDisputeReason_GoodsNotAsDescribed");
         client.initiate_dispute(&trade_id, &buyer, &dispute_reason);
         let trade = client.get_trade(&trade_id);
         assert!(matches!(trade.status, TradeStatus::Disputed));
-        
-        let dispute_record = client.get_dispute_record(&trade_id).expect("dispute record must exist");
+
+        let dispute_record = client
+            .get_dispute_record(&trade_id)
+            .expect("dispute record must exist");
         assert_eq!(dispute_record.initiator, buyer);
         assert_eq!(dispute_record.reason_hash, dispute_reason);
-        
+
         // Step 4: Buyer submits evidence
         env.ledger().with_mut(|l| l.timestamp = 4_000);
-        let buyer_evidence = soroban_sdk::String::from_str(&env, "QmBuyerEvidence_PhotosOfDamagedGoods");
-        let buyer_desc = soroban_sdk::String::from_str(&env, "Photos showing damaged agricultural products");
+        let buyer_evidence =
+            soroban_sdk::String::from_str(&env, "QmBuyerEvidence_PhotosOfDamagedGoods");
+        let buyer_desc =
+            soroban_sdk::String::from_str(&env, "Photos showing damaged agricultural products");
         client.submit_evidence(&trade_id, &buyer, &buyer_evidence, &buyer_desc);
-        
+
         // Step 5: Seller submits counter-evidence
         env.ledger().with_mut(|l| l.timestamp = 5_000);
-        let seller_evidence = soroban_sdk::String::from_str(&env, "QmSellerEvidence_PackagingAndShipping");
-        let seller_desc = soroban_sdk::String::from_str(&env, "Proof of proper packaging and shipping documentation");
+        let seller_evidence =
+            soroban_sdk::String::from_str(&env, "QmSellerEvidence_PackagingAndShipping");
+        let seller_desc = soroban_sdk::String::from_str(
+            &env,
+            "Proof of proper packaging and shipping documentation",
+        );
         client.submit_evidence(&trade_id, &seller, &seller_evidence, &seller_desc);
-        
+
         // Step 6: Register mediator and submit independent evidence
         let mediator = Address::generate(&env);
         client.add_mediator(&mediator);
-        
+
         env.ledger().with_mut(|l| l.timestamp = 6_000);
-        let mediator_evidence = soroban_sdk::String::from_str(&env, "QmMediatorEvidence_InspectionReport");
+        let mediator_evidence =
+            soroban_sdk::String::from_str(&env, "QmMediatorEvidence_InspectionReport");
         let mediator_desc = soroban_sdk::String::from_str(&env, "Independent inspection findings");
         client.submit_evidence(&trade_id, &mediator, &mediator_evidence, &mediator_desc);
-        
+
         // Verify all evidence is recorded
         let evidence_list = client.get_evidence_list(&trade_id);
         assert_eq!(evidence_list.len(), 3, "should have 3 evidence records");
-        
+
         // Step 7: Mediator resolves dispute (65% for seller, 35% loss)
         env.ledger().with_mut(|l| l.timestamp = 7_000);
         client.set_mediator(&mediator);
         client.resolve_dispute(&trade_id, &mediator, &6_500_u32);
-        
+
         // Step 8: Verify final state
         let trade = client.get_trade(&trade_id);
         assert!(matches!(trade.status, TradeStatus::Completed));
-        
+
         // Calculate expected amounts:
         // loss = 35% = 17,500
         // seller bears: 17,500 * 50% = 8,750
@@ -3086,16 +3419,20 @@ mod integration_tests {
         // fee = 41,250 * 1% = 412.5 = 412 (integer division)
         // seller_net = 41,250 - 412 = 40,838
         // buyer_refund = 8,750
-        
+
         let token = token::Client::new(&env, &usdc_id);
         assert_eq!(token.balance(&seller), 40_838, "seller final payout");
         assert_eq!(token.balance(&buyer), 8_750, "buyer refund");
         assert_eq!(token.balance(&treasury), 412, "platform fee");
         assert_eq!(token.balance(&contract_id), 0, "escrow fully distributed");
-        
+
         // Verify evidence remains accessible after resolution
         let evidence_list_final = client.get_evidence_list(&trade_id);
-        assert_eq!(evidence_list_final.len(), 3, "evidence preserved after resolution");
+        assert_eq!(
+            evidence_list_final.len(),
+            3,
+            "evidence preserved after resolution"
+        );
     }
 
     /// Test edge case: very small amounts with loss-sharing and fee calculation
@@ -3111,14 +3448,14 @@ mod integration_tests {
         let seller = Address::generate(&env);
         let treasury = Address::generate(&env);
         let usdc_id = env.register_stellar_asset_contract(admin.clone());
-        
+
         client.initialize(&admin, &usdc_id, &treasury, &100);
-        
+
         // Use a small amount to test rounding behavior
         let amount = 100_i128;
         let token_client = token::StellarAssetClient::new(&env, &usdc_id);
         token_client.mint(&buyer, &amount);
-        
+
         // Create trade with 60/40 loss-sharing
         let trade_id = client.create_trade(&buyer, &seller, &amount, &6000_u32, &4000_u32);
         client.deposit(&trade_id);
@@ -3137,23 +3474,29 @@ mod integration_tests {
         // seller_net = 82 - 0 = 82
         // buyer_refund = 18
         client.resolve_dispute(&trade_id, &mediator, &5_500_u32);
-        
+
         let token = token::Client::new(&env, &usdc_id);
         let seller_balance = token.balance(&seller);
         let buyer_balance = token.balance(&buyer);
         let treasury_balance = token.balance(&treasury);
         let escrow_balance = token.balance(&client.address);
-        
+
         // Verify no funds are lost or created
         let total = seller_balance + buyer_balance + treasury_balance + escrow_balance;
-        assert_eq!(total, amount, "total must equal original amount - no rounding loss");
-        
+        assert_eq!(
+            total, amount,
+            "total must equal original amount - no rounding loss"
+        );
+
         // Verify escrow is empty
         assert_eq!(escrow_balance, 0, "escrow must be fully distributed");
-        
+
         // Verify seller got the majority (since 55% ruling)
-        assert!(seller_balance > buyer_balance, "seller should receive more than buyer");
-        
+        assert!(
+            seller_balance > buyer_balance,
+            "seller should receive more than buyer"
+        );
+
         // Log actual distribution for verification
         assert_eq!(seller_balance, 82, "seller receives 82");
         assert_eq!(buyer_balance, 18, "buyer receives 18");
@@ -3192,7 +3535,10 @@ mod integration_tests {
         client.set_mediator(&mediator);
 
         // Confirm mediator is currently authorized
-        assert!(client.is_mediator(&mediator), "mediator should be registered");
+        assert!(
+            client.is_mediator(&mediator),
+            "mediator should be registered"
+        );
 
         // Fund a trade and initiate a dispute
         let amount = 1000_i128;
@@ -3204,7 +3550,10 @@ mod integration_tests {
 
         // Remove the mediator — must clear both registry and legacy slot
         client.remove_mediator(&mediator);
-        assert!(!client.is_mediator(&mediator), "mediator should be deregistered");
+        assert!(
+            !client.is_mediator(&mediator),
+            "mediator should be deregistered"
+        );
 
         // Attempt to resolve — must panic with "Unauthorized mediator"
         client.resolve_dispute(&trade_id, &mediator, &10_000_u32);
@@ -3226,7 +3575,10 @@ mod integration_tests {
 
         // Register via registry add_mediator
         client.add_mediator(&mediator);
-        assert!(client.is_mediator(&mediator), "mediator should be registered");
+        assert!(
+            client.is_mediator(&mediator),
+            "mediator should be registered"
+        );
 
         // Fund a trade and initiate a dispute
         let amount = 1000_i128;
@@ -3238,7 +3590,10 @@ mod integration_tests {
 
         // Remove the mediator
         client.remove_mediator(&mediator);
-        assert!(!client.is_mediator(&mediator), "mediator should be deregistered");
+        assert!(
+            !client.is_mediator(&mediator),
+            "mediator should be deregistered"
+        );
 
         // Attempt to resolve — must panic with "Unauthorized mediator"
         client.resolve_dispute(&trade_id, &mediator, &10_000_u32);
@@ -3294,8 +3649,14 @@ mod integration_tests {
         // Remove mediator_b — must NOT touch mediator_a's legacy slot
         client.remove_mediator(&mediator_b);
 
-        assert!(client.is_mediator(&mediator_a), "mediator_a must still be authorized");
-        assert!(!client.is_mediator(&mediator_b), "mediator_b must be revoked");
+        assert!(
+            client.is_mediator(&mediator_a),
+            "mediator_a must still be authorized"
+        );
+        assert!(
+            !client.is_mediator(&mediator_b),
+            "mediator_b must be revoked"
+        );
 
         // mediator_a should still be able to resolve
         let amount = 1000_i128;
@@ -5063,4 +5424,3 @@ mod fee_and_evidence_tests {
         assert_eq!(list.get(0).unwrap().ipfs_hash, ipfs);
     }
 }
-
