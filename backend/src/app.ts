@@ -1,8 +1,9 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import { errorHandler } from './middleware/errorHandler';
+import { errorHandler } from "./errors/errorHandler";
 import loggerMiddleware, { appLogger } from './middleware/logger';
+import { requestIdMiddleware } from "./middleware/requestId";
 import { authRoutes } from "./routes/auth.routes";
 import { walletRoutes } from "./routes/wallet.routes";
 import { createTradeRouter } from "./routes/trade.routes";
@@ -42,6 +43,9 @@ function buildCorsOptions(): cors.CorsOptions {
 
 export function createApp(): express.Application {
   const app = express();
+
+  // Request ID for correlation
+  app.use(requestIdMiddleware);
 
   // Security headers
   app.use(
@@ -100,4 +104,5 @@ export function createApp(): express.Application {
   app.use(errorHandler);
   return app;
 }
+
 
