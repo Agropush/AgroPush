@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { prisma as defaultPrisma } from "../lib/db";
+import { TOKEN_CONFIG } from "../config/token";
 
 export type TradeEventType =
     | "CREATED"
@@ -67,7 +68,11 @@ export class AuditTrailService {
             eventType: "CREATED",
             timestamp: trade.createdAt,
             actor: trade.buyerAddress,
-            metadata: { amountUsdc: trade.amountUsdc },
+            metadata: { 
+                amount: trade.amountUsdc, 
+                symbol: TOKEN_CONFIG.symbol,
+                amountUsdc: trade.amountUsdc // Legacy
+            },
         });
 
         // FUNDED — infer from status history; use updatedAt when status is FUNDED
