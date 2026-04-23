@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import { errorHandler } from './middleware/errorHandler';
+import { correlationIdMiddleware } from './middleware/correlationId.middleware';
 import loggerMiddleware, { appLogger } from './middleware/logger';
 import { createTradeRouter } from "./routes/trade.routes";
 import { createManifestRouter } from "./routes/manifest.routes";
@@ -11,6 +12,9 @@ export function createApp(): express.Application {
   const app = express();
   app.use(cors());
   app.use(express.json());
+  // Correlation ID must be registered before the logger so every log line
+  // produced by pino-http already carries the tracing IDs.
+  app.use(correlationIdMiddleware);
   app.use(loggerMiddleware);
   app.get("/health", (req, res) => {
     appLogger.info({ path: req.url }, 'Health check');
