@@ -64,9 +64,27 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res) => {
       await AuthService.revokeToken(jti, exp);
     }
     res.json({ message: 'Logged out successfully' });
-  } catch {
+  } catch (err: any) {
     res.status(500).json({ error: 'Logout failed' });
   }
+});
+
+router.post('/refresh', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing or invalid authorization header' });
+    }
+    const token = authHeader.split(' ')[1];
+    const newToken = await AuthService.refreshToken(token);
+    res.json({ token: newToken });
+  } catch (err: any) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
+router.get('/validate', authMiddleware, (req: AuthRequest, res) => {
+  res.json({ valid: true, user: req.user });
 });
 
 export { router as authRoutes };
