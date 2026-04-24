@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { StrKey } from '@stellar/stellar-sdk';
 import jwt from 'jsonwebtoken';
 import { AuthService } from '../services/auth.service';
-import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
+import { authMiddleware } from '../middleware/auth.middleware';
+import { AuthRequest } from '../services/auth.service';
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

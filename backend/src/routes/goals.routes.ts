@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { SavingsService } from "../services/savings.service";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
+import { authMiddleware } from "../middleware/auth.middleware";
+import { AuthRequest } from "../services/auth.service";
 import { appLogger } from "../middleware/logger";
 
 export function createGoalsRouter(): Router {

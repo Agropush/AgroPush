@@ -1,55 +1,63 @@
-import { Response } from "express";
-import { AuthRequest } from "../middleware/auth.middleware";
+import { Response, NextFunction } from "express";
+import { AuthRequest } from "../services/auth.service";
 import { findOrCreateUser, updateUser, getPublicProfile } from "../services/user.service";
-import { updateProfileSchema } from "../validators/user.validators";
+import { AppError, ErrorCode } from "../errors/errorCodes";
 
-export async function getMe(req: AuthRequest, res: Response) {
+/**
+ * Get current user profile.
+ * GET /users/me
+ */
+export async function getMe(req: AuthRequest, res: Response, next: NextFunction) {
   const callerWalletAddress = req.user?.walletAddress;
   if (!callerWalletAddress) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
+    return next(new AppError(ErrorCode.AUTH_ERROR, "Unauthorized", 401));
   }
 
   try {
     const user = await findOrCreateUser(callerWalletAddress);
     res.json(user);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch profile" });
+    next(err);
   }
 }
 
-export async function updateMe(req: AuthRequest, res: Response) {
+/**
+ * Update current user profile.
+ * PUT /users/me
+ */
+export async function updateMe(req: AuthRequest, res: Response, next: NextFunction) {
   const callerWalletAddress = req.user?.walletAddress;
   if (!callerWalletAddress) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  const parsed = updateProfileSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten().fieldErrors });
-    return;
+    return next(new AppError(ErrorCode.AUTH_ERROR, "Unauthorized", 401));
   }
 
   try {
-    const user = await updateUser(callerWalletAddress, parsed.data);
+    const user = await updateUser(callerWalletAddress, req.body);
     res.json(user);
   } catch (err) {
-    res.status(500).json({ error: "Failed to update profile" });
+    next(err);
   }
 }
 
-export async function getUserByAddress(req: AuthRequest, res: Response) {
+/**
+ * Get public profile by address.
+ * GET /users/:address
+ */
+export async function getUserByAddress(req: AuthRequest, res: Response, next: NextFunction) {
   const raw = req.params.address;
   const address = Array.isArray(raw) ? raw[0] : raw;
+
+  if (!address) {
+    return next(new AppError(ErrorCode.VALIDATION_ERROR, "Wallet address is required", 400));
+  }
+
   try {
     const user = await getPublicProfile(address);
     if (!user) {
-      res.status(404).json({ error: "User not found" });
-      return;
+      throw new AppError(ErrorCode.NOT_FOUND, "User not found", 404);
     }
     res.json(user);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch profile" });
+    next(err);
   }
 }

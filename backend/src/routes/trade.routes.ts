@@ -2,7 +2,8 @@ import { PrismaClient, TradeStatus } from "@prisma/client";
 import { Response, Router } from "express";
 import { TradeController } from "../controllers/trade.controller";
 import { prisma as defaultPrisma } from "../lib/db";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
+import { authMiddleware } from "../middleware/auth.middleware";
+import { AuthRequest } from "../services/auth.service";
 import { TradeAccessDeniedError, TradeService } from "../services/trade.service";
 import { validateRequest } from "../middleware/validateRequest";
 import { idempotencyMiddleware } from "../middleware/idempotency";
@@ -110,7 +111,7 @@ export function createTradeRouter(prisma: PrismaClient = defaultPrisma) {
       }
 
       try {
-        const id = req.params.id;
+        const id = req.params.id as string;
         const trade = await tradeService.getTradeById(id, callerAddress);
         if (!trade) {
           res.status(404).json({ error: "Trade not found" });

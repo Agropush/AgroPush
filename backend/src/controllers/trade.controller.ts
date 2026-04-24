@@ -1,7 +1,7 @@
 import { TradeStatus } from "@prisma/client";
 import * as StellarSdk from "@stellar/stellar-sdk";
 import type { Response } from "express";
-import { AuthRequest } from "../middleware/auth.middleware";
+import { AuthRequest } from "../services/auth.service";
 import {
   buildConfirmDeliveryTx,
   buildReleaseFundsTx,
@@ -92,7 +92,7 @@ export class TradeController {
         await this.contractService.buildCreateTradeTx({
           buyerAddress,
           sellerAddress,
-          amountUsdc: normalizedAmountUsdc,
+          amount: normalizedAmountUsdc,
           buyerLossBps: buyerLossBps as number,
           sellerLossBps: sellerLossBps as number,
         });

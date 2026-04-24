@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import multer from "multer";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
+import { authMiddleware } from "../middleware/auth.middleware";
+import { AuthRequest } from "../services/auth.service";
 import {
     EvidenceService,
     EvidenceAccessDeniedError,

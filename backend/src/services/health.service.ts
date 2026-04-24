@@ -23,7 +23,7 @@ interface HealthCheckResponse {
     };
 }
 
-type HealthDatabase = Pick<PrismaClient, "processedLedger" | "$queryRaw">;
+type HealthDatabase = any;
 
 export class HealthService {
     private startTime: number = Date.now();
