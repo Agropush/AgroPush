@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { useAnalytics } from "@/components/AnalyticsProvider";
 import { api, ApiError, TradeResponse } from "@/lib/api";
 
 type TradeStatus = "all" | "active" | "pending" | "completed" | "disputed";
@@ -27,6 +28,7 @@ const PAGE_SIZE = 10;
 
 export default function TradesPage() {
   const { token, isAuthenticated } = useAuth();
+  const { trackApiFailure, trackFunnelStep } = useAnalytics();
   const [activeFilter, setActiveFilter] = useState<TradeStatus>("all");
   const [page, setPage] = useState(1);
   const [trades, setTrades] = useState<TradeResponse[]>([]);
@@ -35,6 +37,8 @@ export default function TradesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    trackFunnelStep("trade_page_view", { filter: activeFilter });
+
     async function fetchTrades() {
       if (!isAuthenticated || !token) {
         setLoading(false);
@@ -56,11 +60,16 @@ export default function TradesPage() {
         setTotalPages(response.pagination.totalPages);
       } catch (err) {
         let errorMessage = "Failed to load trades";
+        let status = 0;
+
         if (err instanceof ApiError) {
           errorMessage = err.message;
+          status = err.status ?? 0;
         } else if (err instanceof Error) {
           errorMessage = err.message;
         }
+
+        trackApiFailure("/trades", status, { message: errorMessage, filter: activeFilter });
         setError(errorMessage);
       } finally {
         setLoading(false);

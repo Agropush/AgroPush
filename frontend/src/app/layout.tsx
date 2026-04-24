@@ -7,6 +7,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AppTopNav } from "@/components/layout/AppTopNav";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AuthProvider } from "@/hooks/useAuth";
+import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,15 +40,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} font-sans bg-primary text-text-primary antialiased`}
       >
-        <AuthProvider>
-          <div className="flex flex-col h-screen">
-            <AppTopNav />
-            <div className="flex flex-1 overflow-hidden">
-              <AppSidebar />
-              <main className="flex-1 overflow-y-auto h-full">{children}</main>
+        <AnalyticsProvider>
+          <AuthProvider>
+            <div className="flex flex-col h-screen">
+              <AppTopNav />
+              <div className="flex flex-1 overflow-hidden">
+                <AppSidebar />
+                <main className="flex-1 overflow-y-auto h-full">{children}</main>
+              </div>
             </div>
-          </div>
-        </AuthProvider>
+          </AuthProvider>
+        </AnalyticsProvider>
       </body>
     </html>
   );
