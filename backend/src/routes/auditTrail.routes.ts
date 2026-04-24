@@ -1,7 +1,8 @@
 import { Router, Response } from "express";
 import crypto from "crypto";
 import { Parser } from "json2csv";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
+import { authMiddleware } from "../middleware/auth.middleware";
+import { AuthRequest } from "../services/auth.service";
 import {
     AuditTrailService,
     AuditTrailAccessDeniedError,
