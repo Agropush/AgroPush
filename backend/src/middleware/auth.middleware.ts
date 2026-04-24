@@ -1,17 +1,6 @@
-import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { AuthService } from "../services/auth.service";
-
-export interface AuthRequest extends Request {
-  user?: {
-    walletAddress: string;
-    jti?: string;
-    [key: string]: any;
-  };
-}
-
-const EXPECTED_ISSUER = process.env.JWT_ISSUER || 'amana';
-const EXPECTED_AUDIENCE = process.env.JWT_AUDIENCE || 'amana-api';
+import { Response, NextFunction } from "express";
+import { AuthService, AuthRequest } from "../services/auth.service";
+import { AppError } from "../errors/errorCodes";
 
 export const authMiddleware = async (
   req: AuthRequest,
@@ -26,38 +15,16 @@ export const authMiddleware = async (
     }
 
     const token = authHeader.split(" ")[1];
+    const decoded = await AuthService.validateToken(token);
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      res.status(401).json({ error: "Server configuration error" });
-      return;
-    }
-
-    const decoded = jwt.verify(token, secret, {
-      algorithms: ['HS256'],
-      issuer: EXPECTED_ISSUER,
-      audience: EXPECTED_AUDIENCE,
-    }) as jwt.JwtPayload;
-
-    // Enforce required claims
-    if (!decoded.jti) {
-      res.status(401).json({ error: "Unauthorized: missing jti claim" });
-      return;
-    }
-    if (!decoded.nbf || decoded.nbf > Math.floor(Date.now() / 1000)) {
-      res.status(401).json({ error: "Unauthorized: token not yet valid" });
-      return;
-    }
-
-    // Check revocation denylist
-    if (await AuthService.isTokenRevoked(decoded.jti)) {
-      res.status(401).json({ error: "Unauthorized: token has been revoked" });
-      return;
-    }
-
-    req.user = decoded as any;
+    req.user = decoded;
     next();
   } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
     res.status(401).json({ error: "Unauthorized" });
   }
 };
+
