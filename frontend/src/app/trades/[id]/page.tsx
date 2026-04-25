@@ -139,7 +139,7 @@ export default function TradeDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <BentoCard
               title="Amount"
-              value={`${trade.amountUsdc} USDC`}
+              value={`${trade.amountCngn} cNGN`}
               helper="Total trade value"
             />
             <BentoCard

@@ -83,7 +83,7 @@ export default function Step2Negotiation() {
 
       {/* Info callout */}
       <div className="rounded-lg bg-emerald-muted border border-emerald/20 px-4 py-3 text-sm text-emerald">
-        Funds will be locked as USDC via Stellar Path Payment from your NGN balance.
+        Funds will be locked as cNGN via Stellar Path Payment from your NGN balance.
         The 1% platform fee is deducted on settlement.
       </div>
 

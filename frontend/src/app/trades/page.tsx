@@ -226,7 +226,7 @@ export default function TradesPage() {
                         {formatAddress(trade.sellerAddress)}
                       </td>
                       <td className="px-4 py-3 text-text-primary">
-                        {trade.amountUsdc} USDC
+                        {trade.amountCngn} cNGN
                       </td>
                       <td className="px-4 py-3">
                         <span

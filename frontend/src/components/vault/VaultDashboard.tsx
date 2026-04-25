@@ -65,7 +65,7 @@ const VAULT_DATA = {
   networkDescription:
     "Secured and powered by the Stellar network for instantaneous cross-border settlement and verifiable transparency.",
   paymentOverview: {
-    totalUsdc: 2480000,
+    totalCngn: 2480000,
     ngnRate: 1580,
   },
   footer: {
@@ -144,7 +144,7 @@ export function VaultDashboard() {
           {/* Row 3: Payment Overview */}
           <div className="lg:col-span-5">
             <PaymentOverviewCard
-              totalUsdc={VAULT_DATA.paymentOverview.totalUsdc}
+              totalCngn={VAULT_DATA.paymentOverview.totalCngn}
               ngnRate={VAULT_DATA.paymentOverview.ngnRate}
             />
           </div>

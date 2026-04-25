@@ -149,7 +149,7 @@ describe('Step1Details', () => {
             const options = Array.from(select.querySelectorAll('option')).map(opt => opt.value);
 
             expect(options).toContain('NGN');
-            expect(options).toContain('USDC');
+            expect(options).toContain('cNGN');
         });
 
         it('should update currency when selected', async () => {
@@ -157,9 +157,9 @@ describe('Step1Details', () => {
             renderWithProvider();
 
             const select = screen.getByLabelText(/currency/i);
-            await user.selectOptions(select, 'USDC');
+            await user.selectOptions(select, 'cNGN');
 
-            expect(select).toHaveValue('USDC');
+            expect(select).toHaveValue('cNGN');
         });
     });
 
@@ -284,7 +284,7 @@ describe('Step1Details', () => {
 
             await user.type(quantityInput, '100');
             await user.type(priceInput, '100');
-            await user.selectOptions(currencySelect, 'USDC');
+            await user.selectOptions(currencySelect, 'cNGN');
 
             const totalElement = screen.getByText(/estimated total/i).nextElementSibling;
             expect(totalElement).toHaveTextContent('USDC 10,000');

@@ -32,7 +32,7 @@ export default function Step3Review() {
       ? (parseFloat(data.quantity) * parseFloat(data.pricePerUnit)).toLocaleString("en-NG")
       : "—";
 
-  const amountUsdc =
+  const amountCngn =
     data.quantity && data.pricePerUnit
       ? String(parseFloat(data.quantity) * parseFloat(data.pricePerUnit))
       : "0";
@@ -52,7 +52,7 @@ export default function Step3Review() {
     try {
       const createResponse = await api.trades.create(token, {
         sellerAddress: data.sellerAddress,
-        amountUsdc,
+        amountCngn,
         buyerLossBps,
         sellerLossBps,
       });
@@ -177,7 +177,7 @@ export default function Step3Review() {
         <ReviewRow label="Quantity" value={`${data.quantity} ${data.unit}`} />
         <ReviewRow label="Price per unit" value={`${data.currency} ${data.pricePerUnit}`} />
         <ReviewRow label="Total Value" value={`${data.currency} ${total}`} />
-        <ReviewRow label="USDC Amount" value={`${amountUsdc} USDC`} />
+        <ReviewRow label="USDC Amount" value={`${amountCngn} cNGN`} />
         <ReviewRow label="Seller Address" value={data.sellerAddress} />
         <ReviewRow label="Loss Ratio" value={`Buyer ${data.buyerRatio}% / Seller ${data.sellerRatio}%`} />
         <ReviewRow label="Delivery Window" value={`${data.deliveryDays} days`} />
@@ -186,7 +186,7 @@ export default function Step3Review() {
 
       <div className="rounded-lg bg-gold-muted border border-gold/20 px-4 py-3 text-sm text-gold">
         By submitting, you authorize a Stellar transaction to create an escrow trade,
-        locking {amountUsdc} USDC in the Amana escrow contract.
+        locking {amountCngn} cNGN in the Amana escrow contract.
       </div>
 
       {error && (

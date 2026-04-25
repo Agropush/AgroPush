@@ -55,9 +55,9 @@ jest.mock('@/components/vault', () => ({
             <span>{socialLinks.length} social links</span>
         </div>
     ),
-    PaymentOverviewCard: ({ totalUsdc, ngnRate }: { totalUsdc: number, ngnRate: number }) => (
+    PaymentOverviewCard: ({ totalCngn, ngnRate }: { totalCngn: number, ngnRate: number }) => (
         <div data-testid="payment-overview-card">
-            <span>{totalUsdc}</span>
+            <span>{totalCngn}</span>
             <span>{ngnRate}</span>
         </div>
     ),
