@@ -606,9 +606,9 @@ export default function AssetsPage() {
 
                         {/* Amount */}
                         <p className="text-sm font-semibold text-text-primary">
-                          {parseFloat(trade.amountUsdc).toLocaleString()}{" "}
+                          {parseFloat(trade.amountCngn).toLocaleString()}{" "}
                           <span className="text-text-muted font-normal">
-                            USDC
+                            cNGN
                           </span>
                         </p>
 

@@ -84,11 +84,11 @@ describe('Step3Review', () => {
             expect(totalRow).toHaveTextContent('—');
         });
 
-        it('should display USDC amount', () => {
+        it('should display cNGN amount', () => {
             renderWithProvider();
 
             const usdcRow = screen.getByText('USDC Amount').closest('div');
-            expect(usdcRow).toHaveTextContent('0 USDC');
+            expect(usdcRow).toHaveTextContent('0 cNGN');
         });
 
         it('should display seller address', () => {
@@ -127,7 +127,7 @@ describe('Step3Review', () => {
             expect(screen.getByText(/by submitting, you authorize a stellar transaction/i)).toBeInTheDocument();
         });
 
-        it('should display USDC amount in authorization message', () => {
+        it('should display cNGN amount in authorization message', () => {
             renderWithProvider();
 
             expect(screen.getByText(/locking 0 usdc/i)).toBeInTheDocument();
@@ -336,11 +336,11 @@ describe('Step3Review', () => {
             expect(totalRow).toHaveTextContent('—');
         });
 
-        it('should handle zero USDC amount', () => {
+        it('should handle zero cNGN amount', () => {
             renderWithProvider();
 
             const usdcRow = screen.getByText('USDC Amount').closest('div');
-            expect(usdcRow).toHaveTextContent('0 USDC');
+            expect(usdcRow).toHaveTextContent('0 cNGN');
         });
 
         it('should handle very large total values', () => {
@@ -351,10 +351,10 @@ describe('Step3Review', () => {
             expect(totalRow).toBeInTheDocument();
         });
 
-        it('should handle very large USDC amounts', () => {
+        it('should handle very large cNGN amounts', () => {
             renderWithProvider();
 
-            // This test would verify that large USDC amounts are displayed correctly
+            // This test would verify that large cNGN amounts are displayed correctly
             const usdcRow = screen.getByText('USDC Amount').closest('div');
             expect(usdcRow).toBeInTheDocument();
         });

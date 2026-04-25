@@ -8,7 +8,7 @@ const SAMPLE_TRADES: {
   tradeId: string;
   commodity: string;
   counterparty: { role: string; address: string };
-  amountUsdc: string;
+  amountCngn: string;
   status: TradeStatus;
   createdAt: string;
   showDeposit?: boolean;
@@ -21,7 +21,7 @@ const SAMPLE_TRADES: {
       role: "Buyer",
       address: "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37",
     },
-    amountUsdc: "42,500.00",
+    amountCngn: "42,500.00",
     status: "IN TRANSIT",
     createdAt: "24 Mar 2026",
     showDeposit: true,
@@ -33,7 +33,7 @@ const SAMPLE_TRADES: {
       role: "Seller",
       address: "GBVFLWI4BHEFNREUZ7MWKUKGEBV5PFP5TLHZGXQJQKSKFEXOFAGXFBXS",
     },
-    amountUsdc: "18,750.00",
+    amountCngn: "18,750.00",
     status: "PENDING",
     createdAt: "25 Mar 2026",
     showDeposit: true,
@@ -45,7 +45,7 @@ const SAMPLE_TRADES: {
       role: "Buyer",
       address: "GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGMAKZ93KNFZ7ID2AWRXNZ",
     },
-    amountUsdc: "31,200.00",
+    amountCngn: "31,200.00",
     status: "SETTLED",
     createdAt: "20 Mar 2026",
     showWithdraw: true,
@@ -57,7 +57,7 @@ const SAMPLE_TRADES: {
       role: "Seller",
       address: "GDNSSYSCSSJ3LNZMBQ5SXLLFJFQF7NZXMTNJHEMR5DJXZXP7X4PJBFE",
     },
-    amountUsdc: "9,800.00",
+    amountCngn: "9,800.00",
     status: "DISPUTED",
     createdAt: "22 Mar 2026",
   },
@@ -68,7 +68,7 @@ const SAMPLE_TRADES: {
       role: "Buyer",
       address: "GBWZFKQLHQNVADIMRMFXRV7GKPXSB4LLHMVB7U3PXMRX2XNJWLZXKOA",
     },
-    amountUsdc: "7,250.00",
+    amountCngn: "7,250.00",
     status: "DRAFT",
     createdAt: "28 Mar 2026",
   },
@@ -86,7 +86,7 @@ export function TradeListItemDemo() {
             tradeId={t.tradeId}
             commodity={t.commodity}
             counterparty={t.counterparty}
-            amountUsdc={t.amountUsdc}
+            amountCngn={t.amountCngn}
             status={t.status}
             createdAt={t.createdAt}
             onView={() => setLastAction(`View → ${t.tradeId}`)}

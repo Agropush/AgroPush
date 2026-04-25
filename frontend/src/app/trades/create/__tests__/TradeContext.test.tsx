@@ -162,10 +162,10 @@ describe('TradeContext', () => {
             const { result } = renderHook(() => useTrade(), { wrapper });
 
             act(() => {
-                result.current.update({ currency: 'USDC' });
+                result.current.update({ currency: 'cNGN' });
             });
 
-            expect(result.current.data.currency).toBe('USDC');
+            expect(result.current.data.currency).toBe('cNGN');
         });
 
         it('should update unit', () => {

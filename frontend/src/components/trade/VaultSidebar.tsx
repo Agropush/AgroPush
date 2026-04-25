@@ -15,14 +15,14 @@ export function VaultSidebar({ trade }: VaultSidebarProps) {
       </p>
       <p className="text-4xl font-bold text-gold mb-4">
         {trade.vaultAmountLocked.toLocaleString()}{" "}
-        <span className="text-xl font-semibold text-text-secondary">USDC</span>
+        <span className="text-xl font-semibold text-text-secondary">cNGN</span>
       </p>
 
       <div className="space-y-2 mb-4">
         <div className="flex justify-between text-sm">
           <span className="text-text-secondary">Asset Value</span>
           <span className="text-text-primary font-medium">
-            {trade.assetValue.toLocaleString()} USDC
+            {trade.assetValue.toLocaleString()} cNGN
           </span>
         </div>
         <div className="flex justify-between text-sm">
@@ -30,7 +30,7 @@ export function VaultSidebar({ trade }: VaultSidebarProps) {
             Platform Fee ({trade.platformFeePercent}%)
           </span>
           <span className="text-status-danger font-medium">
-            {trade.platformFee.toLocaleString()} USDC
+            {trade.platformFee.toLocaleString()} cNGN
           </span>
         </div>
         <div className="flex justify-between text-sm">

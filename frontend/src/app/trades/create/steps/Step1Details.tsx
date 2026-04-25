@@ -77,7 +77,7 @@ export default function Step1Details() {
             className="bg-bg-input border border-border-default rounded-md px-4 py-3 text-text-primary focus:outline-none focus:border-border-focus"
           >
             <option value="NGN">NGN</option>
-            <option value="USDC">USDC</option>
+            <option value="cNGN">USDC</option>
           </select>
         </div>
       </div>
