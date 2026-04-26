@@ -267,6 +267,10 @@ export default function AssetsPage() {
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const estimatedFinalReleaseLabel = useState(
+    () =>
+      `Est. ${new Date(Date.now() + 14 * 86400000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+  )[0];
 
   const fetchData = useCallback(async () => {
     if (!token) return;
@@ -435,7 +439,7 @@ export default function AssetsPage() {
                       {
                         label: "Final Release",
                         date: stats
-                          ? `Est. ${new Date(Date.now() + 14 * 86400000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                          ? estimatedFinalReleaseLabel
                           : "Est. Nov 04",
                         status: "pending",
                       },

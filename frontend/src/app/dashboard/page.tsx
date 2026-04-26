@@ -195,7 +195,7 @@ export default function DashboardPage() {
             </div>
             <p className="text-text-primary font-medium">No recent trades found.</p>
             <p className="text-text-secondary text-sm mt-1 max-w-sm mb-4">
-              You haven't initiated or received any trades yet. Create your first trade to get started.
+              You haven&apos;t initiated or received any trades yet. Create your first trade to get started.
             </p>
             <Link
               href="/trades/create"
@@ -235,7 +235,7 @@ export default function DashboardPage() {
                         {trade.sellerAddress.substring(0, 6)}...{trade.sellerAddress.substring(trade.sellerAddress.length - 4)}
                       </td>
                       <td className="px-6 py-4 text-text-primary font-medium">
-                        {trade.amountUsdc} USDC
+                        {trade.amountCngn} cNGN
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 text-xs font-medium rounded-full capitalize

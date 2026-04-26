@@ -12,9 +12,18 @@ import { ActionBar } from "../ActionBar";
 import type { TradeDetail, TradeStatus } from "@/types/trade";
 
 jest.mock("next/link", () => {
-  return ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  );
+  function MockNextLink({
+    children,
+    href,
+  }: {
+    children: ReactNode;
+    href: string;
+  }) {
+    return <a href={href}>{children}</a>;
+  }
+
+  MockNextLink.displayName = "MockNextLink";
+  return MockNextLink;
 });
 
 const baseTrade: TradeDetail = {
