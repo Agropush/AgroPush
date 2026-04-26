@@ -15,7 +15,7 @@ jest.mock("../config/stellar", () => ({
 
 describe("StellarService network resilience", () => {
   const sleepMock = jest.fn().mockResolvedValue(undefined);
-  const validKey = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
+  const validKey = "TEST_PUBLIC_KEY_FOR_MOCK";
   let loadAccountMock: jest.Mock;
 
   beforeEach(() => {
