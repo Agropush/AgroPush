@@ -6,7 +6,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { api, ApiError, TradeResponse, TradeStatsResponse } from "@/lib/api";
 import { BentoCard } from "@/components/ui/BentoCard";
 import { Activity, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { SkeletonCard } from "@/components/ui/SkeletonCard";
+import { SkeletonList } from "@/components/ui/SkeletonList";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function DashboardPage() {
   const { token, isAuthenticated } = useAuth();
@@ -63,7 +65,31 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return <LoadingState message="Loading your dashboard..." />;
+    return (
+      <div className="p-6 max-w-7xl mx-auto space-y-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-3">
+            <Skeleton className="h-9 w-44" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-lg" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <SkeletonCard key={index} />
+          ))}
+        </div>
+
+        <div className="rounded-xl border border-border-default bg-bg-card p-5 space-y-4">
+          <div className="flex justify-between items-end">
+            <Skeleton className="h-6 w-36" />
+            <Skeleton className="h-4 w-14" />
+          </div>
+          <SkeletonList rows={4} />
+        </div>
+      </div>
+    );
   }
 
   if (error) {
