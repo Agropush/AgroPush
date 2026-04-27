@@ -101,3 +101,23 @@ Mutation endpoints support idempotency via the `Idempotency-Key` header.
   - `AUDIT_SIGNING_KEY_ID`
   - `AUDIT_SIGNING_PRIVATE_KEY_PEM`
   - `AUDIT_SIGNING_PUBLIC_KEY_PEM`
+
+## 9. Resilient Chain Event Outbox
+
+- Chain sync now persists per-event processing state in `ChainEventOutbox`.
+- Each row is uniquely keyed by `(ledgerSequence, contractId, eventId)` and stores:
+  - event metadata (`eventType`, `tradeId`, `payload`)
+  - processing state (`PENDING`, `RETRYING`, `PROCESSED`, `DEAD_LETTER`)
+  - retry controls (`attempts`, `nextAttemptAt`, `lastError`)
+  - terminal timestamps (`processedAt`, `deadLetteredAt`)
+- Retry behavior:
+  - failed events are re-scheduled with exponential backoff
+  - retries stop after `EVENT_OUTBOX_MAX_ATTEMPTS`
+  - final failures are moved to `DEAD_LETTER` and logged
+- Exactly-once semantics are preserved by keeping `ProcessedEvent` write in the same transaction as event handling.
+
+### Event Sync Environment Variables
+
+- `EVENT_OUTBOX_MAX_ATTEMPTS`: max attempts before dead-lettering (default `5`)
+- `BACKOFF_INITIAL_MS`: retry backoff initial delay (default `1000`)
+- `BACKOFF_MAX_MS`: retry backoff max delay (default `30000`)
