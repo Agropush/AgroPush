@@ -5,30 +5,27 @@
  * high-throughput scenarios, and restart recovery.
  */
 
-import { vi } from "vitest";
 import { EventType } from "../types/events";
 
 // ─── Hoisted mocks ────────────────────────────────────────────────────────────
 
-const { mockGetEvents, mockDispatchEvent } = vi.hoisted(() => ({
-  mockGetEvents: vi.fn(),
-  mockDispatchEvent: vi.fn().mockResolvedValue(undefined),
-}));
+const mockGetEvents = jest.fn();
+const mockDispatchEvent = jest.fn().mockResolvedValue(undefined);
 
-vi.mock("@stellar/stellar-sdk", () => ({
+jest.mock("@stellar/stellar-sdk", () => ({
   rpc: {
-    Server: vi.fn().mockImplementation(() => ({
+    Server: jest.fn().mockImplementation(() => ({
       getEvents: (...args: unknown[]) => mockGetEvents(...args),
     })),
   },
-  scValToNative: vi.fn(),
+  scValToNative: jest.fn(),
 }));
 
-vi.mock("../config/eventListener.config", () => ({
-  getEventListenerConfig: vi.fn(),
+jest.mock("../config/eventListener.config", () => ({
+  getEventListenerConfig: jest.fn(),
 }));
 
-vi.mock("../services/eventHandlers", () => ({
+jest.mock("../services/eventHandlers", () => ({
   dispatchEvent: (...args: unknown[]) => mockDispatchEvent(...args),
 }));
 
@@ -55,17 +52,17 @@ const TEST_CONFIG = {
 
 function createMockPrisma() {
   const mockTx = {
-    trade: { upsert: vi.fn().mockResolvedValue({}) },
-    processedEvent: { create: vi.fn().mockResolvedValue({}) },
+    trade: { upsert: jest.fn().mockResolvedValue({}) },
+    processedEvent: { create: jest.fn().mockResolvedValue({}) },
   };
   return {
-    trade: { upsert: vi.fn().mockResolvedValue({}) },
+    trade: { upsert: jest.fn().mockResolvedValue({}) },
     processedEvent: {
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockResolvedValue({}),
+      findMany: jest.fn().mockResolvedValue([]),
+      findUnique: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({}),
     },
-    $transaction: vi.fn().mockImplementation(
+    $transaction: jest.fn().mockImplementation(
       async (cb: (tx: typeof mockTx) => Promise<void>) => { await cb(mockTx); }
     ),
     _mockTx: mockTx,
@@ -83,7 +80,7 @@ function makeRawEvent(
 }
 
 function setupScValMock(symbol: string, tradeId: string) {
-  (StellarSdk.scValToNative as ReturnType<typeof vi.fn>)
+  (StellarSdk.scValToNative as jest.Mock)
     .mockReturnValueOnce(symbol)
     .mockReturnValueOnce(tradeId);
 }
@@ -95,11 +92,11 @@ describe("EventListener — exactly-once semantics", () => {
   let mockPrisma: ReturnType<typeof createMockPrisma>;
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
     mockGetEvents.mockReset().mockResolvedValue({ events: [] });
     mockDispatchEvent.mockReset().mockResolvedValue(undefined);
-    (StellarSdk.scValToNative as ReturnType<typeof vi.fn>).mockReset();
-    vi.mocked(getEventListenerConfig).mockReturnValue(TEST_CONFIG);
+    (StellarSdk.scValToNative as jest.Mock).mockReset();
+    (getEventListenerConfig as jest.Mock).mockReturnValue(TEST_CONFIG);
 
     mockPrisma = createMockPrisma();
     service = new EventListenerService(mockPrisma);
@@ -109,8 +106,8 @@ describe("EventListener — exactly-once semantics", () => {
 
   afterEach(() => {
     service.stop();
-    vi.useRealTimers();
-    vi.restoreAllMocks();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 
   // ── 1. Idempotency ──────────────────────────────────────────────────────────
@@ -183,7 +180,7 @@ describe("EventListener — exactly-once semantics", () => {
       setupScValMock("TradeCreated", "trade-1005");
       mockPrisma.$transaction.mockRejectedValueOnce(new Error("DB connection lost"));
 
-      await service.processEvent(raw as any);
+      await expect(service.processEvent(raw as any)).rejects.toThrow("DB connection lost");
 
       const cacheKey = `1005:CONTRACT_IDEM_TEST:evt-1005`;
       expect((service as any).processedEvents.has(cacheKey)).toBe(false);
@@ -259,7 +256,7 @@ describe("EventListener — exactly-once semantics", () => {
       ];
       mockGetEvents.mockResolvedValue({ events });
 
-      (StellarSdk.scValToNative as ReturnType<typeof vi.fn>)
+      (StellarSdk.scValToNative as jest.Mock)
         .mockReturnValueOnce("TradeCreated").mockReturnValueOnce("t-1")
         .mockReturnValueOnce("TradeFunded").mockReturnValueOnce("t-1")
         .mockReturnValueOnce("DeliveryConfirmed").mockReturnValueOnce("t-1");
@@ -281,7 +278,7 @@ describe("EventListener — exactly-once semantics", () => {
       ];
       mockGetEvents.mockResolvedValue({ events });
 
-      (StellarSdk.scValToNative as ReturnType<typeof vi.fn>)
+      (StellarSdk.scValToNative as jest.Mock)
         .mockReturnValueOnce("TradeCreated").mockReturnValueOnce("t-1")
         .mockReturnValueOnce("TradeFunded").mockReturnValueOnce("t-1");
 
@@ -299,7 +296,7 @@ describe("EventListener — exactly-once semantics", () => {
       ];
       mockGetEvents.mockResolvedValue({ events });
 
-      (StellarSdk.scValToNative as ReturnType<typeof vi.fn>)
+      (StellarSdk.scValToNative as jest.Mock)
         .mockReturnValueOnce("TradeCreated").mockReturnValueOnce("t-1")
         .mockReturnValueOnce("TradeFunded").mockReturnValueOnce("t-1")
         .mockReturnValueOnce("DisputeInitiated").mockReturnValueOnce("t-1");
@@ -320,7 +317,7 @@ describe("EventListener — exactly-once semantics", () => {
       mockGetEvents.mockResolvedValue({ events });
 
       for (let i = 0; i < 50; i++) {
-        (StellarSdk.scValToNative as ReturnType<typeof vi.fn>)
+        (StellarSdk.scValToNative as jest.Mock)
           .mockReturnValueOnce("TradeCreated")
           .mockReturnValueOnce(`trade-${i}`);
       }
@@ -337,7 +334,7 @@ describe("EventListener — exactly-once semantics", () => {
       mockGetEvents.mockResolvedValue({ events });
 
       for (let i = 0; i < 100; i++) {
-        (StellarSdk.scValToNative as ReturnType<typeof vi.fn>)
+        (StellarSdk.scValToNative as jest.Mock)
           .mockReturnValueOnce("TradeFunded")
           .mockReturnValueOnce(`trade-${i}`);
       }
@@ -363,7 +360,7 @@ describe("EventListener — exactly-once semantics", () => {
       // parseEvent calls scValToNative for ALL events (before cache check)
       // so we need 5 * 2 = 10 mock return values
       for (let i = 0; i < 5; i++) {
-        (StellarSdk.scValToNative as ReturnType<typeof vi.fn>)
+        (StellarSdk.scValToNative as jest.Mock)
           .mockReturnValueOnce("TradeCreated")
           .mockReturnValueOnce(`trade-${i}`);
       }
@@ -477,7 +474,7 @@ describe("EventListener — exactly-once semantics", () => {
     };
 
     it("calls handler and creates ProcessedEvent in same transaction", async () => {
-      const handler = vi.fn().mockResolvedValue(undefined);
+      const handler = jest.fn().mockResolvedValue(undefined);
       await processEventAtomically(mockPrisma, baseEvent, handler);
 
       expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
@@ -495,7 +492,7 @@ describe("EventListener — exactly-once semantics", () => {
 
     it("silently ignores P2002 duplicate constraint error", async () => {
       mockPrisma.$transaction.mockRejectedValueOnce({ code: "P2002" });
-      const handler = vi.fn().mockResolvedValue(undefined);
+      const handler = jest.fn().mockResolvedValue(undefined);
 
       await expect(
         processEventAtomically(mockPrisma, baseEvent, handler)
@@ -504,7 +501,7 @@ describe("EventListener — exactly-once semantics", () => {
 
     it("re-throws non-P2002 errors", async () => {
       mockPrisma.$transaction.mockRejectedValueOnce(new Error("disk full"));
-      const handler = vi.fn().mockResolvedValue(undefined);
+      const handler = jest.fn().mockResolvedValue(undefined);
 
       await expect(
         processEventAtomically(mockPrisma, baseEvent, handler)

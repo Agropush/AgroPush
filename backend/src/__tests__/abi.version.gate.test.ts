@@ -16,19 +16,15 @@
  * Failing any of these blocks the merge in CI.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-
-vi.hoisted(() => {
-  process.env.JWT_SECRET =
-    process.env.JWT_SECRET || "test-secret-at-least-32-characters-long";
-  process.env.DATABASE_URL =
-    process.env.DATABASE_URL ||
-    "postgresql://test:test@localhost:5432/test";
-  process.env.AMANA_ESCROW_CONTRACT_ID =
-    process.env.AMANA_ESCROW_CONTRACT_ID || "CONTRACT_ID";
-  process.env.USDC_CONTRACT_ID =
-    process.env.USDC_CONTRACT_ID || "USDC_CONTRACT_ID";
-});
+process.env.JWT_SECRET =
+  process.env.JWT_SECRET || "test-secret-at-least-32-characters-long";
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL ||
+  "postgresql://test:test@localhost:5432/test";
+process.env.AMANA_ESCROW_CONTRACT_ID =
+  process.env.AMANA_ESCROW_CONTRACT_ID || "CONTRACT_ID";
+process.env.USDC_CONTRACT_ID =
+  process.env.USDC_CONTRACT_ID || "USDC_CONTRACT_ID";
 
 // ── Frozen contract ABI snapshot ──────────────────────────────────────────────
 //
