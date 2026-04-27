@@ -22,13 +22,15 @@ export const EVENT_TO_STATUS: Record<EventType, TradeStatus> = {
   [EventType.DeliveryConfirmed]: TradeStatus.DELIVERED,
   [EventType.FundsReleased]: TradeStatus.COMPLETED,
   [EventType.DisputeInitiated]: TradeStatus.DISPUTED,
-  [EventType.DisputeResolved]: TradeStatus.CANCELLED,
+  [EventType.DisputeResolved]: TradeStatus.COMPLETED,
 };
 
 export interface ParsedEvent {
   eventType: EventType;
   tradeId: string;
   ledgerSequence: number;
+  contractId: string;
+  eventId: string; // raw Soroban event.id
   /** Raw data payload from Soroban event */
   data: Record<string, unknown>;
 }

@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
+import crypto from "crypto";
 import { prisma as defaultPrisma } from "../lib/db";
+import { TOKEN_CONFIG } from "../config/token";
 
 export type TradeEventType =
     | "CREATED"
@@ -19,6 +21,24 @@ export interface TradeEvent {
     metadata: Record<string, unknown>;
 }
 
+export interface AuditIntegrityMetadata {
+    algorithm: "ed25519";
+    keyId: string;
+    payloadHash: string;
+    signature: string;
+}
+
+export interface CanonicalAuditPayload {
+    tradeId: string;
+    generatedAt: string;
+    events: Array<{
+        eventType: TradeEventType;
+        timestamp: string;
+        actor: string;
+        metadata: Record<string, unknown>;
+    }>;
+}
+
 export class AuditTrailAccessDeniedError extends Error {
     status = 403;
     constructor() {
@@ -35,12 +55,46 @@ export class AuditTrailTradeNotFoundError extends Error {
     }
 }
 
+export class AuditSigningConfigError extends Error {
+    status = 500;
+    constructor(message = "Audit signing configuration is invalid") {
+        super(message);
+        this.name = "AuditSigningConfigError";
+    }
+}
+
 type AuditDatabase = {
     trade: Pick<PrismaClient["trade"], "findUnique">;
     tradeEvidence: Pick<PrismaClient["tradeEvidence"], "findMany">;
     deliveryManifest: Pick<PrismaClient["deliveryManifest"], "findUnique">;
     dispute: Pick<PrismaClient["dispute"], "findUnique">;
 };
+
+function parseAdminPubkeys(): Set<string> {
+    const raw = process.env.ADMIN_STELLAR_PUBKEYS ?? "";
+    return new Set(
+        raw
+            .split(",")
+            .map((value) => value.trim().toLowerCase())
+            .filter(Boolean),
+    );
+}
+
+function getEvidenceMetadataRetentionDays(): number {
+    const parsed = parseInt(process.env.EVIDENCE_METADATA_RETENTION_DAYS || "90", 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 90;
+}
+
+function isEvidenceMetadataExpired(createdAt: Date): boolean {
+    const retentionMs = getEvidenceMetadataRetentionDays() * 24 * 60 * 60 * 1000;
+    return Date.now() - createdAt.getTime() > retentionMs;
+}
+
+function maskVehicleRegistration(value: string): string {
+    const trimmed = value.trim();
+    if (trimmed.length <= 3) return "***";
+    return `${trimmed.slice(0, 3)}***`;
+}
 
 export class AuditTrailService {
     constructor(private readonly prisma: AuditDatabase = defaultPrisma as unknown as AuditDatabase) { }
@@ -55,6 +109,7 @@ export class AuditTrailService {
         const caller = callerAddress.toLowerCase();
         const isBuyer = trade.buyerAddress.toLowerCase() === caller;
         const isSeller = trade.sellerAddress.toLowerCase() === caller;
+        const isAdmin = parseAdminPubkeys().has(caller);
 
         // Fetch dispute early — needed for both mediator access check and event assembly
         const dispute = await this.prisma.dispute.findUnique({ where: { tradeId } });
@@ -64,7 +119,7 @@ export class AuditTrailService {
         // query a dedicated mediator registry; this matches the current schema.
         const isMediator = !isBuyer && !isSeller && dispute !== null;
 
-        if (!isBuyer && !isSeller && !isMediator) {
+        if (!isBuyer && !isSeller && !isMediator && !isAdmin) {
             throw new AuditTrailAccessDeniedError();
         }
 
@@ -75,7 +130,11 @@ export class AuditTrailService {
             eventType: "CREATED",
             timestamp: trade.createdAt,
             actor: trade.buyerAddress,
-            metadata: { amountUsdc: trade.amountUsdc },
+            metadata: { 
+                amount: trade.amountUsdc, 
+                symbol: TOKEN_CONFIG.symbol,
+                amountUsdc: trade.amountUsdc // Legacy
+            },
         });
 
         // FUNDED — infer from status history; use updatedAt when status is FUNDED
@@ -100,7 +159,9 @@ export class AuditTrailService {
                 timestamp: manifest.createdAt,
                 actor: trade.sellerAddress,
                 metadata: {
-                    vehicleRegistration: manifest.vehicleRegistration,
+                    vehicleRegistration: isAdmin
+                        ? manifest.vehicleRegistration
+                        : maskVehicleRegistration(manifest.vehicleRegistration),
                     expectedDeliveryAt: manifest.expectedDeliveryAt,
                 },
             });
@@ -113,11 +174,17 @@ export class AuditTrailService {
         });
         for (const ev of evidenceRecords) {
             const isVideo = ev.mimeType.startsWith("video/");
+            const expired = isEvidenceMetadataExpired(ev.createdAt);
             events.push({
                 eventType: isVideo ? "VIDEO_SUBMITTED" : "EVIDENCE_SUBMITTED",
                 timestamp: ev.createdAt,
-                actor: ev.uploadedBy,
-                metadata: { cid: ev.cid, filename: ev.filename, mimeType: ev.mimeType },
+                actor: expired && !isAdmin ? "redacted" : ev.uploadedBy,
+                metadata: {
+                    mimeType: ev.mimeType,
+                    cid: expired ? "redacted" : ev.cid,
+                    filename: expired ? "redacted" : ev.filename,
+                    retentionExpired: expired,
+                },
             });
         }
 
@@ -164,5 +231,51 @@ export class AuditTrailService {
         events.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
         return events;
+    }
+
+    getCanonicalPayload(tradeId: string, events: TradeEvent[]): CanonicalAuditPayload {
+        return {
+            tradeId,
+            generatedAt: new Date().toISOString(),
+            events: events.map((event) => ({
+                eventType: event.eventType,
+                timestamp: event.timestamp.toISOString(),
+                actor: event.actor,
+                metadata: event.metadata,
+            })),
+        };
+    }
+
+    signPayload(payload: CanonicalAuditPayload): AuditIntegrityMetadata {
+        const keyId = process.env.AUDIT_SIGNING_KEY_ID;
+        const privateKeyPem = process.env.AUDIT_SIGNING_PRIVATE_KEY_PEM;
+
+        if (!keyId || !privateKeyPem) {
+            throw new AuditSigningConfigError("AUDIT_SIGNING_KEY_ID and AUDIT_SIGNING_PRIVATE_KEY_PEM are required");
+        }
+
+        const payloadBytes = Buffer.from(JSON.stringify(payload), "utf8");
+        const payloadHash = crypto.createHash("sha256").update(payloadBytes).digest("hex");
+        const privateKey = crypto.createPrivateKey(privateKeyPem);
+        const signature = crypto.sign(null, payloadBytes, privateKey).toString("base64");
+
+        return {
+            algorithm: "ed25519",
+            keyId,
+            payloadHash,
+            signature,
+        };
+    }
+
+    verifyPayload(payload: CanonicalAuditPayload, signatureBase64: string): boolean {
+        const publicKeyPem = process.env.AUDIT_SIGNING_PUBLIC_KEY_PEM;
+        if (!publicKeyPem) {
+            throw new AuditSigningConfigError("AUDIT_SIGNING_PUBLIC_KEY_PEM is required");
+        }
+
+        const payloadBytes = Buffer.from(JSON.stringify(payload), "utf8");
+        const signature = Buffer.from(signatureBase64, "base64");
+        const publicKey = crypto.createPublicKey(publicKeyPem);
+        return crypto.verify(null, payloadBytes, publicKey, signature);
     }
 }

@@ -3,6 +3,7 @@ import { TradeProvider, useTrade } from "./TradeContext";
 import Step1Details from "./steps/Step1Details";
 import Step2Negotiation from "./steps/Step2Negotiation";
 import Step3Review from "./steps/Step3Review";
+import Link from "next/link";
 
 const STEPS = [
   { index: 1, label: "Details" },
@@ -53,15 +54,15 @@ function CreateTradeInner() {
     <div className="min-h-screen bg-bg-primary flex items-start justify-center px-4 py-12">
       <div className="w-full max-w-lg">
         <div className="mb-6">
-          <a href="/" className="text-text-muted text-sm hover:text-text-secondary transition-colors">
+          <Link href="/" className="text-text-muted text-sm hover:text-text-secondary transition-colors">
             ← Back
-          </a>
+          </Link>
         </div>
 
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-text-primary">Create Trade</h1>
           <p className="text-text-secondary text-sm mt-1">
-            Lock agricultural commodity value into USDC escrow via NGN Path Payment
+            Lock agricultural commodity value into cNGN escrow via NGN Path Payment
           </p>
         </div>
 

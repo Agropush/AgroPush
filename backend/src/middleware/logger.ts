@@ -1,5 +1,6 @@
 import pinoHttp from 'pino-http';
 import pino from 'pino';
+import type { Request } from 'express';
 import { env } from '../config/env';
 import { CORRELATION_ID_HEADER, REQUEST_ID_HEADER } from './correlationId.middleware';
 

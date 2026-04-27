@@ -46,11 +46,11 @@ export function FinancialSummary({ trade }: FinancialSummaryProps) {
         <h2 className="text-sm font-semibold text-text-secondary tracking-wide uppercase">
           Financial Summary
         </h2>
-        <span className="text-xs text-text-muted">All amounts in USDC</span>
+        <span className="text-xs text-text-muted">All amounts in cNGN</span>
       </div>
 
       <TradeAmountRow
-        amountUsdc={trade.vaultAmountLocked}
+        amountCngn={trade.vaultAmountLocked}
         amountLocal={ngnEquivalent}
         currencyLocal="NGN"
         label="Vault Amount Locked"
@@ -59,10 +59,13 @@ export function FinancialSummary({ trade }: FinancialSummaryProps) {
 
       {/* Line items */}
       <div>
-        <FinancialRow label="Asset Value" value={`${trade.assetValue.toLocaleString()} USDC`} />
+        <FinancialRow
+          label="Asset Value"
+          value={`${trade.assetValue.toLocaleString()} cNGN`}
+        />
         <FinancialRow
           label={`Platform Fee (${trade.platformFeePercent}%)`}
-          value={`${trade.platformFee.toLocaleString()} USDC`}
+          value={`${trade.platformFee.toLocaleString()} cNGN`}
           highlight
         />
         <FinancialRow
@@ -91,8 +94,8 @@ export function FinancialSummary({ trade }: FinancialSummaryProps) {
             SMART CONTRACT SECURED
           </p>
           <p className="text-xs text-text-secondary leading-relaxed">
-            Funds are programmatically locked. Release occurs only upon multi-sig
-            validation or verified shipment receipt.
+            Funds are programmatically locked. Release occurs only upon
+            multi-sig validation or verified shipment receipt.
           </p>
         </div>
       </div>

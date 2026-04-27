@@ -1,32 +1,97 @@
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
 import { errorHandler } from './middleware/errorHandler';
 import { correlationIdMiddleware } from './middleware/correlationId.middleware';
 import { tracingMiddleware } from './middleware/tracing.middleware';
 import loggerMiddleware, { appLogger } from './middleware/logger';
+import { requestIdMiddleware } from "./middleware/requestId";
+import { authRoutes } from "./routes/auth.routes";
+import { walletRoutes } from "./routes/wallet.routes";
 import { createTradeRouter } from "./routes/trade.routes";
 import { createManifestRouter } from "./routes/manifest.routes";
 import { createEvidenceRouter } from "./routes/evidence.routes";
 import { createAuditTrailRouter } from "./routes/auditTrail.routes";
+import { createGoalsRouter } from "./routes/goals.routes";
+import { createHealthRouter } from "./routes/health.routes";
+import userRoutes from "./routes/user.routes";
+
+/** Parse the CORS_ORIGINS env var into a usable allowlist.
+ *  Value should be a comma-separated list of allowed origins, e.g.:
+ *    CORS_ORIGINS=https://app.amana.com,https://staging.amana.com
+ *  Leave empty in development to allow all origins.
+ */
+function buildCorsOptions(): cors.CorsOptions {
+  const raw = process.env.CORS_ORIGINS ?? '';
+  const allowlist = raw
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  if (allowlist.length === 0) {
+    // No allowlist configured — permissive (development only)
+    return { origin: true, credentials: true };
+  }
+
+  return {
+    origin: (origin, callback) => {
+      // Allow server-to-server calls (no Origin header)
+      if (!origin) return callback(null, true);
+      if (allowlist.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
+  };
+}
 
 export function createApp(): express.Application {
   const app = express();
-  app.use(cors());
-  app.use(express.json());
+
+  // Security headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'"],
+          imgSrc: ["'self'", "data:"],
+          connectSrc: ["'self'"],
+          frameSrc: ["'none'"],
+          objectSrc: ["'none'"],
+        },
+      },
+      crossOriginEmbedderPolicy: true,
+      crossOriginOpenerPolicy: { policy: 'same-origin' },
+      crossOriginResourcePolicy: { policy: 'same-origin' },
+      referrerPolicy: { policy: 'no-referrer' },
+      hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+      noSniff: true,
+      frameguard: { action: 'deny' },
+      xssFilter: true,
+    })
+  );
+
+  // Environment-driven CORS
+  app.use(cors(buildCorsOptions()));
+
+  // Body size limits: 100 KB for JSON, 5 MB for URL-encoded (covers file references)
+  app.use(express.json({ limit: '100kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
   // Correlation ID must be registered before the logger so every log line
   // produced by pino-http already carries the tracing IDs.
   app.use(correlationIdMiddleware);
   // OpenTelemetry tracing middleware - integrates with correlation IDs
   app.use(tracingMiddleware);
   app.use(loggerMiddleware);
-  app.get("/health", (req, res) => {
-    appLogger.info({ path: req.url }, 'Health check');
-    res.status(200).json({
-      status: "ok",
-      service: "amana-backend",
-      timestamp: new Date().toISOString(),
-    });
-  });
+
+  // Enhanced health check with deep introspection
+  app.use("/health", createHealthRouter());
+
+  app.use("/auth", authRoutes);
+  app.use("/wallet", walletRoutes);
+  app.use("/users", userRoutes);
 
   const tradeRouter = createTradeRouter();
   app.use("/trades", tradeRouter);
@@ -39,6 +104,9 @@ export function createApp(): express.Application {
 
   // Audit trail: GET /trades/:id/history
   app.use("/trades", createAuditTrailRouter());
+
+  // Goals analytics: GET /goals
+  app.use("/goals", createGoalsRouter());
 
   // Error handler is registered last so it catches errors from all routes,
   // including any routes added to the app after createApp() returns.
@@ -78,4 +146,5 @@ export function createApp(): express.Application {
 
   return app;
 }
+
 

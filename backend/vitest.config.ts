@@ -6,5 +6,10 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     setupFiles: ["src/__tests__/setup.ts"],
+    server: {
+      deps: {
+        inline: ["@stellar/stellar-sdk"],
+      },
+    },
   },
 });

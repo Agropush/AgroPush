@@ -1,14 +1,12 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import { Manrope } from "next/font/google";
 
 import "./globals.css";
-import { TopNav } from "@/components/TopNav";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { AppTopNav } from "@/components/layout/AppTopNav";
-import { AppSidebar } from "@/components/layout/AppSidebar";
+import { AppShell } from "@/components/layout/AppShell";
+import { AuthProvider } from "@/hooks/useAuth";
+import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,9 +19,9 @@ const geistMono = Geist_Mono({
 });
 
 const manrope = Manrope({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-manrope',
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-manrope",
 });
 
 export const metadata: Metadata = {
@@ -41,14 +39,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} font-sans bg-primary text-text-primary antialiased`}
       >
-        <TopNav title="Amana" networkStatus="testnet" />
-        <div className="flex flex-col h-screen">
-          <AppTopNav />
-          <div className="flex flex-1 overflow-hidden">
-            <AppSidebar />
-            <main className="flex-1 overflow-y-auto">{children}</main>
-          </div>
-        </div>
+        <AnalyticsProvider>
+          <AuthProvider>
+            <AppShell>{children}</AppShell>
+          </AuthProvider>
+        </AnalyticsProvider>
       </body>
     </html>
   );
