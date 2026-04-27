@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Button } from "@/components/ui/Button";
 
 export interface SideNavBarProps {
   activePath: string;
@@ -156,10 +157,10 @@ export function SideNavBar({
                   aria-current={isActive ? "page" : undefined}
                   className={`flex items-center ${
                     collapsed ? "justify-center px-2" : "px-4"
-                  } py-3 border-l-4 transition-all ${
+                  } py-3 border-l-4 transition-all focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2 ${
                     isActive
-                      ? "border-l-gold bg-elevated text-gold"
-                      : "border-transparent text-text-secondary hover:text-text-primary hover:bg-white/5 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                      ? "border-l-gold bg-elevated text-gold hover:bg-elevated/80"
+                      : "border-transparent text-text-secondary hover:text-text-primary hover:bg-white/5"
                   }`}
                   title={collapsed ? item.label : undefined}
                 >
@@ -189,15 +190,14 @@ export function SideNavBar({
             </p>
           </div>
         ) : (
-          <button
+          <Button
             type="button"
             onClick={onConnectWallet}
-            className={`w-full rounded-lg bg-gold text-text-inverse text-sm font-semibold hover:bg-gold-hover transition-colors ${
-              collapsed ? "px-2 py-2.5" : "px-3 py-2.5"
-            }`}
+            variant="primary"
+            className={collapsed ? "px-2 py-2.5" : "px-3 py-2.5"}
           >
             {collapsed ? "Link" : "Connect Wallet"}
-          </button>
+          </Button>
         )}
       </div>
     </aside>

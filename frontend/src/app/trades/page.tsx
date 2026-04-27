@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAnalytics } from "@/components/AnalyticsProvider";
 import { api, ApiError, TradeResponse } from "@/lib/api";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Tabs } from "@/components/ui/Tabs";
+import { Button } from "@/components/ui/Button";
 
 type TradeStatus = "all" | "active" | "pending" | "completed" | "disputed";
 
@@ -18,11 +20,11 @@ const FILTERS: { label: string; value: TradeStatus }[] = [
 ];
 
 const STATUS_STYLES: Record<string, string> = {
-  active: "text-status-success bg-emerald-muted",
-  pending: "text-status-warning bg-status-warning/15",
+  active: "text-status-success bg-status-success/10",
+  pending: "text-status-warning bg-status-warning/10",
   completed: "text-text-secondary bg-bg-elevated",
-  disputed: "text-status-danger bg-status-danger/15",
-  locked: "text-status-locked bg-gold-muted",
+  disputed: "text-status-danger bg-status-danger/10",
+  locked: "text-status-locked bg-status-locked/10",
 };
 
 const PAGE_SIZE = 10;
@@ -134,30 +136,19 @@ export default function TradesPage() {
        * remain as page-specific controls within the single shell.
        */}
       <div className="flex items-center justify-end mb-6">
-        <Link
-          href="/trades/create"
-          className="px-4 py-2 rounded-md bg-gold text-text-inverse text-sm font-medium hover:bg-gold-hover transition-colors"
-        >
-          Create Trade
+        <Link href="/trades/create">
+          <Button variant="primary">Create Trade</Button>
         </Link>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 border-b border-border-default pb-px mb-6">
-        {FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => handleFilter(f.value)}
-            className={`pb-3 px-1 text-sm transition-colors ${
-              activeFilter === f.value
-                ? "text-gold underline underline-offset-8 decoration-gold decoration-2"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={FILTERS}
+        activeValue={activeFilter}
+        onChange={handleFilter}
+        variant="underline"
+        className="mb-6"
+      />
 
       {/* Loading state */}
       {loading && <TradesTableSkeleton />}
@@ -205,11 +196,8 @@ export default function TradesPage() {
               </p>
 
               {/* CTA Button */}
-              <Link
-                href="/trades/create"
-                className="inline-block px-6 py-3 rounded-lg bg-gold text-text-inverse text-sm font-semibold hover:bg-gold-hover transition-colors"
-              >
-                Create Your First Trade
+              <Link href="/trades/create">
+                <Button variant="primary" size="lg">Create Your First Trade</Button>
               </Link>
             </div>
           ) : (
