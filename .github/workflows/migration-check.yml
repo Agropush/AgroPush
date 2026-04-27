@@ -82,7 +82,14 @@ jobs:
           PATTERNS=(
             "DROP TABLE"
             "DROP COLUMN"
+            "DROP SCHEMA"
+            "DROP DATABASE"
+            "DROP VIEW"
+            "DROP INDEX"
             "TRUNCATE"
+            "ALTER TABLE[[:space:]].*DROP CONSTRAINT"
+            "ALTER TABLE[[:space:]].*RENAME[[:space:]]+(COLUMN|TO)"
+            "ALTER TABLE[[:space:]].*ALTER[[:space:]]+COLUMN[[:space:]].*TYPE"
           )
 
           for f in $NEW_SQL; do
