@@ -27,6 +27,29 @@ export class EvidenceValidationError extends Error {
     }
 }
 
+export class EvidenceScanError extends Error {
+    status = 503;
+    constructor(message = "Evidence scan service unavailable") {
+        super(message);
+        this.name = "EvidenceScanError";
+    }
+}
+
+export interface EvidenceScanResult {
+    clean: boolean;
+    reason?: string;
+}
+
+export interface EvidenceScanner {
+    scan(file: Express.Multer.File): Promise<EvidenceScanResult>;
+}
+
+class NoopEvidenceScanner implements EvidenceScanner {
+    async scan(): Promise<EvidenceScanResult> {
+        return { clean: true };
+    }
+}
+
 type EvidenceDatabase = {
     trade: Pick<PrismaClient["trade"], "findUnique">;
     tradeEvidence: Pick<PrismaClient["tradeEvidence"], "findMany" | "create">;
@@ -34,14 +57,17 @@ type EvidenceDatabase = {
 
 export class EvidenceService {
     private ipfs: IPFSService;
+    private scanner: EvidenceScanner;
     /** In-process cache: CID → resolved gateway URL */
     private readonly urlCache = new Map<string, string>();
 
     constructor(
         private readonly prisma: EvidenceDatabase = defaultPrisma as unknown as EvidenceDatabase,
         ipfs?: IPFSService,
+        scanner?: EvidenceScanner,
     ) {
         this.ipfs = ipfs ?? new IPFSService();
+        this.scanner = scanner ?? new NoopEvidenceScanner();
     }
 
     /** Return all evidence records for a trade. Caller must be buyer or seller. */
@@ -96,17 +122,28 @@ export class EvidenceService {
             throw new EvidenceAccessDeniedError();
         }
 
-        // Validate mime type
+        // Validate declared mime type
         const allowed = ["video/mp4", "video/webm"];
         if (!allowed.includes(file.mimetype)) {
             throw new EvidenceValidationError("Unsupported file type");
         }
 
-        // Enforce size limit (50MB)
+        // Validate mime by magic bytes to prevent spoofed content-type uploads.
+        const sniffed = this.sniffMimeType(file.buffer);
+        if (!sniffed || sniffed !== file.mimetype) {
+            throw new EvidenceValidationError("File content does not match declared MIME type");
+        }
+
+        // Enforce configurable size limit (default 50MB)
         const size = (file as any).size ?? file.buffer.length;
-        const MAX = 50 * 1024 * 1024;
+        const MAX = parseInt(process.env.EVIDENCE_MAX_BYTES || "52428800", 10);
         if (size > MAX) {
             throw new EvidenceValidationError("File too large");
+        }
+
+        const scan = await this.runEvidenceScan(file);
+        if (!scan.clean) {
+            throw new EvidenceValidationError(scan.reason || "Evidence blocked by malware scanner");
         }
 
         const cid = await this.ipfs.uploadFile(file.buffer, file.originalname);
@@ -173,5 +210,39 @@ export class EvidenceService {
         const url = this.ipfs.getFileUrl(cid);
         this.urlCache.set(cid, url);
         return url;
+    }
+
+    private sniffMimeType(buffer: Buffer): "video/mp4" | "video/webm" | null {
+        // MP4: bytes 4-7 should contain 'ftyp' marker in ISO BMFF containers.
+        if (buffer.length >= 12 && buffer.subarray(4, 8).toString("ascii") === "ftyp") {
+            return "video/mp4";
+        }
+
+        // WebM: EBML header starts with 0x1A45DFA3.
+        if (
+            buffer.length >= 4 &&
+            buffer[0] === 0x1a &&
+            buffer[1] === 0x45 &&
+            buffer[2] === 0xdf &&
+            buffer[3] === 0xa3
+        ) {
+            return "video/webm";
+        }
+
+        return null;
+    }
+
+    private async runEvidenceScan(file: Express.Multer.File): Promise<EvidenceScanResult> {
+        const required = String(process.env.EVIDENCE_SCAN_REQUIRED || "false").toLowerCase() === "true";
+        try {
+            return await this.scanner.scan(file);
+        } catch (error) {
+            if (!required) {
+                return { clean: true };
+            }
+            throw new EvidenceScanError(
+                error instanceof Error ? error.message : "Evidence scan service unavailable",
+            );
+        }
     }
 }

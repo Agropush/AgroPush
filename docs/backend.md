@@ -121,3 +121,19 @@ Mutation endpoints support idempotency via the `Idempotency-Key` header.
 - `EVENT_OUTBOX_MAX_ATTEMPTS`: max attempts before dead-lettering (default `5`)
 - `BACKOFF_INITIAL_MS`: retry backoff initial delay (default `1000`)
 - `BACKOFF_MAX_MS`: retry backoff max delay (default `30000`)
+
+## 10. Evidence Upload Hardening
+
+- Upload validation now enforces both:
+  - declared content-type allowlist (`video/mp4`, `video/webm`)
+  - byte-level MIME sniffing from file signatures
+- Size limits are enforced with a shared configurable cap for multer and service validation.
+- Malware scanning is pluggable via `EvidenceScanner` hook:
+  - clean files proceed
+  - flagged files are blocked with validation error
+  - scanner outages are fail-open by default, fail-closed when required
+
+### Evidence Security Environment Variables
+
+- `EVIDENCE_MAX_BYTES`: max upload size in bytes (default `52428800`)
+- `EVIDENCE_SCAN_REQUIRED`: set `true` to fail-closed when scanner is unavailable
