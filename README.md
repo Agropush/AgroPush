@@ -6,6 +6,8 @@
 
 **Amana** is a decentralized escrow protocol designed to secure agricultural trade across different regions. By leveraging **Soroban Smart Contracts**, Amana eliminates the "Trust Gap" between buyers and sellers, ensuring fair trade even when parties are hundreds of miles apart.
 
+This is the main repository containing the smart contracts and orchestration logic. Backend, frontend, and mobile applications are maintained in separate repositories for better organization and independent deployment.
+
 ---
 
 ## 🚀 The Mission
