@@ -44,7 +44,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM"
                 },
                 {
-                  "u32": 7842
+                  "u32": 1459
                 }
               ]
             }
@@ -66,7 +66,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                 },
                 {
-                  "i128": "45725"
+                  "i128": "30967"
                 }
               ]
             }
@@ -105,7 +105,7 @@
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                     },
                     {
-                      "i128": "45725"
+                      "i128": "30967"
                     }
                   ]
                 }
@@ -242,7 +242,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "45725"
+                      "i128": "30967"
                     }
                   },
                   {
@@ -258,7 +258,7 @@
                       "symbol": "buyer_loss_bps"
                     },
                     "val": {
-                      "u32": 7842
+                      "u32": 921
                     }
                   },
                   {
@@ -296,7 +296,7 @@
                       "symbol": "seller_loss_bps"
                     },
                     "val": {
-                      "u32": 2158
+                      "u32": 9079
                     }
                   },
                   {
@@ -399,7 +399,7 @@
                         ]
                       },
                       "val": {
-                        "u32": 7842
+                        "u32": 1459
                       }
                     },
                     {
@@ -612,7 +612,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "45725"
+                      "i128": "30967"
                     }
                   },
                   {

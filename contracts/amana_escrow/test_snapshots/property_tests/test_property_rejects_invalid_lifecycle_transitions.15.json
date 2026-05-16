@@ -44,7 +44,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM"
                 },
                 {
-                  "u32": 1317
+                  "u32": 6998
                 }
               ]
             }
@@ -66,7 +66,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                 },
                 {
-                  "i128": "930"
+                  "i128": "11795"
                 }
               ]
             }
@@ -105,7 +105,7 @@
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                     },
                     {
-                      "i128": "930"
+                      "i128": "11795"
                     }
                   ]
                 }
@@ -194,7 +194,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "930"
+                      "i128": "11795"
                     }
                   },
                   {
@@ -210,7 +210,7 @@
                       "symbol": "buyer_loss_bps"
                     },
                     "val": {
-                      "u32": 3899
+                      "u32": 45
                     }
                   },
                   {
@@ -248,7 +248,7 @@
                       "symbol": "seller_loss_bps"
                     },
                     "val": {
-                      "u32": 6101
+                      "u32": 9955
                     }
                   },
                   {
@@ -351,7 +351,7 @@
                         ]
                       },
                       "val": {
-                        "u32": 1317
+                        "u32": 6998
                       }
                     },
                     {
@@ -472,7 +472,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "930"
+                      "i128": "11795"
                     }
                   },
                   {

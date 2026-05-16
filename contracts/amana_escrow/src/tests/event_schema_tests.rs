@@ -9,7 +9,8 @@ mod event_schema_tests {
     use soroban_sdk::{
         symbol_short,
         testutils::{Address as _, Events as _},
-        token, Address, Env, IntoVal, String, Symbol, Val, Vec,
+        token, xdr::ContractEventBody, xdr::ScVal, Address, Env, IntoVal, String, Symbol,
+        TryFromVal, Val,
     };
 
     // -----------------------------------------------------------------------
@@ -38,19 +39,25 @@ mod event_schema_tests {
     /// Assert that the most-recently emitted event has exactly the expected topics.
     fn assert_last_event_topics(env: &Env, expected: &[Val]) {
         let all = env.events().all();
-        assert!(!all.is_empty(), "no events emitted");
-        let (_, topics, _): (Address, Vec<Val>, Val) = all.last().unwrap();
+        let events = all.events();
+        assert!(!events.is_empty(), "no events emitted");
+        let last = events.last().unwrap();
+        let topics = match &last.body {
+            ContractEventBody::V0(v0) => &v0.topics,
+        };
         assert_eq!(
-            topics.len() as usize,
+            topics.len(),
             expected.len(),
             "topic count mismatch: got {}, want {}",
             topics.len(),
             expected.len()
         );
         for (i, exp) in expected.iter().enumerate() {
+            let expected_scval = ScVal::try_from_val(env, exp).unwrap();
+            let actual_scval = topics.iter().nth(i).unwrap();
             assert_eq!(
-                topics.get(i as u32).unwrap(),
-                *exp,
+                actual_scval,
+                &expected_scval,
                 "topic[{i}] mismatch"
             );
         }
@@ -76,9 +83,8 @@ mod event_schema_tests {
 
         // Payload fields: admin (Address) + fee_bps (u32)
         let all = env.events().all();
-        let (_, _, data): (Address, Vec<Val>, Val) = all.last().unwrap();
-        // data is a tuple/struct — just assert it is non-void (non-unit)
-        let _: Val = data; // type-check: must be a Val, not ()
+        let events = all.events();
+        assert!(!events.is_empty(), "initialized event missing");
     }
 
     // -----------------------------------------------------------------------
@@ -343,16 +349,15 @@ mod event_schema_tests {
         let mediator = Address::generate(&env);
 
         // Capture event count after initialize
-        let after_init = env.events().all().len();
+        let after_init = env.events().all().events().len();
 
         client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32);
-        let after_create = env.events().all().len();
+        let after_create = env.events().all().events().len();
         assert_eq!(after_create, after_init + 1, "create_trade must emit 1 event");
 
         let trade_id = {
             let all = env.events().all();
-            let (_, _, data): (Address, Vec<Val>, Val) = all.last().unwrap();
-            let _ = data;
+            assert!(!all.events().is_empty(), "expected events after create_trade");
             // re-create to get trade_id
             let contract_id2 = env.register(EscrowContract, ());
             let c2 = EscrowContractClient::new(&env, &contract_id2);
@@ -380,10 +385,15 @@ mod event_schema_tests {
 
         // Verify the full event sequence ends with DISRES
         let all = env.events().all();
-        let (_, last_topics, _): (Address, Vec<Val>, Val) = all.last().unwrap();
+        let events = all.events();
+        assert!(!events.is_empty(), "expected lifecycle events");
+        let last_topics = match &events.last().unwrap().body {
+            ContractEventBody::V0(v0) => &v0.topics,
+        };
+        let disres = ScVal::try_from_val(&env, &symbol_short!("DISRES")).unwrap();
         assert_eq!(
-            last_topics.get(0).unwrap(),
-            symbol_short!("DISRES").into_val(&env),
+            last_topics.iter().next().unwrap(),
+            &disres,
             "last event in dispute lifecycle must be DISRES"
         );
     }

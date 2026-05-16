@@ -44,7 +44,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM"
                 },
                 {
-                  "u32": 2452
+                  "u32": 3864
                 }
               ]
             }
@@ -66,7 +66,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                 },
                 {
-                  "i128": "12430"
+                  "i128": "77265"
                 }
               ]
             }
@@ -105,7 +105,7 @@
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                     },
                     {
-                      "i128": "12430"
+                      "i128": "77265"
                     }
                   ]
                 }
@@ -242,7 +242,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "12430"
+                      "i128": "77265"
                     }
                   },
                   {
@@ -258,7 +258,7 @@
                       "symbol": "buyer_loss_bps"
                     },
                     "val": {
-                      "u32": 1097
+                      "u32": 4940
                     }
                   },
                   {
@@ -296,7 +296,7 @@
                       "symbol": "seller_loss_bps"
                     },
                     "val": {
-                      "u32": 8903
+                      "u32": 5060
                     }
                   },
                   {
@@ -399,7 +399,7 @@
                         ]
                       },
                       "val": {
-                        "u32": 2452
+                        "u32": 3864
                       }
                     },
                     {
@@ -612,7 +612,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "12430"
+                      "i128": "77265"
                     }
                   },
                   {

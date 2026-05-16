@@ -38,25 +38,30 @@ To provide a programmable safety net for regional commodity trading. Amana ensur
 
 ### Frontend setup
 
-1. `cd frontend`
+The frontend has been moved to the separate repository: `Amana-Frontend/`.
+
+1. `cd Amana-Frontend`
 2. `cp .env.example .env.local`
-3. `npm run dev`
+3. `npm install`
+4. `npm run dev`
 
 ### Backend setup
 
-1. `cd backend`
+The backend has been moved to the separate repository: `Amana-backend-service/`.
+
+1. `cd Amana-backend-service`
 2. `cp .env.example .env`
-3. `cp .env.tracing.example .env` (for distributed tracing configuration)
-4. `npm install` (to install new OpenTelemetry dependencies)
+3. `cp .env.tracing.example .env.tracing` (for distributed tracing configuration)
+4. `npm install`
 5. `npm run dev`
 
 ### Backend API docs
 
-- Source of truth: `backend/src/docs/openapi.yaml`
+- Source of truth: `Amana-backend-service/src/docs/openapi.yaml`
 - Dev Swagger UI: `http://localhost:4000/api/docs`
 - JSON export: `http://localhost:4000/api/docs/openapi.json`
 
-The backend writes `backend/src/docs/openapi.json` from the YAML spec in non-production runs so reviewers can inspect either format.
+The backend writes `Amana-backend-service/src/docs/openapi.json` from the YAML spec in non-production runs so reviewers can inspect either format.
 
 ### Contracts setup
 
@@ -67,8 +72,8 @@ The backend writes `backend/src/docs/openapi.json` from the YAML spec in non-pro
 
 Amana enforces stack-level CI gates on pull requests through `.github/workflows/ci.yml`.
 
-- **Frontend Required Gate**: `npm ci`, `npm run lint`, `npm run build` in `frontend/`
-- **Backend Required Gate**: `npm ci`, `npm run build`, `npm test` in `backend/`
+- **Frontend Required Gate**: `npm ci`, `npm run lint`, `npm run build` in `Amana-Frontend/`
+- **Backend Required Gate**: `npm ci`, `npm run build`, `npm test` in `Amana-backend-service/`
 - **Contracts Required Gate**: `cargo test` in `contracts/amana_escrow/`
 
 Path-aware execution is enabled to avoid unnecessary runtime. If a stack has no changed files, the gate reports a skip-note and passes.
@@ -125,18 +130,21 @@ For the protected branch (`main`), set these required status checks:
 Amana includes comprehensive distributed tracing with OpenTelemetry for end-to-end request visibility and faster incident triage.
 
 ### Features
+
 - **Correlation IDs**: Unique identifiers spanning frontend-backend requests
 - **Request Tracing**: Complete request lifecycle tracking
 - **Service Integration**: Automatic tracing for external services (IPFS, Stellar)
 - **Observability**: Jaeger, Zipkin, and Prometheus integration
 
 ### Quick Start
+
 1. Configure tracing environment variables (see `backend/.env.tracing.example`)
 2. Start Jaeger for trace visualization: `docker run -p 16686:16686 jaegertracing/all-in-one`
 3. View traces at `http://localhost:16686`
 4. Check metrics at `http://localhost:9464/metrics`
 
 ### Documentation
+
 See [DISTRIBUTED_TRACING_GUIDE.md](./DISTRIBUTED_TRACING_GUIDE.md) for detailed setup and usage instructions.
 
 ---

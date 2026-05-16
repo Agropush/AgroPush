@@ -44,7 +44,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM"
                 },
                 {
-                  "u32": 8149
+                  "u32": 7618
                 }
               ]
             }
@@ -66,7 +66,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                 },
                 {
-                  "i128": "74968"
+                  "i128": "2258"
                 }
               ]
             }
@@ -180,7 +180,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "74968"
+                      "i128": "2258"
                     }
                   },
                   {
@@ -196,7 +196,7 @@
                       "symbol": "buyer_loss_bps"
                     },
                     "val": {
-                      "u32": 2796
+                      "u32": 1043
                     }
                   },
                   {
@@ -232,7 +232,7 @@
                       "symbol": "seller_loss_bps"
                     },
                     "val": {
-                      "u32": 7204
+                      "u32": 8957
                     }
                   },
                   {
@@ -335,7 +335,7 @@
                         ]
                       },
                       "val": {
-                        "u32": 8149
+                        "u32": 7618
                       }
                     },
                     {
@@ -456,7 +456,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "74968"
+                      "i128": "2258"
                     }
                   },
                   {

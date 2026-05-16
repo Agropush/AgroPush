@@ -44,7 +44,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM"
                 },
                 {
-                  "u32": 9055
+                  "u32": 2921
                 }
               ]
             }
@@ -66,7 +66,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                 },
                 {
-                  "i128": "88187"
+                  "i128": "81829"
                 }
               ]
             }
@@ -105,7 +105,7 @@
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                     },
                     {
-                      "i128": "88187"
+                      "i128": "81829"
                     }
                   ]
                 }
@@ -242,7 +242,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "88187"
+                      "i128": "81829"
                     }
                   },
                   {
@@ -258,7 +258,7 @@
                       "symbol": "buyer_loss_bps"
                     },
                     "val": {
-                      "u32": 379
+                      "u32": 4794
                     }
                   },
                   {
@@ -296,7 +296,7 @@
                       "symbol": "seller_loss_bps"
                     },
                     "val": {
-                      "u32": 9621
+                      "u32": 5206
                     }
                   },
                   {
@@ -399,7 +399,7 @@
                         ]
                       },
                       "val": {
-                        "u32": 9055
+                        "u32": 2921
                       }
                     },
                     {
@@ -612,7 +612,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "88187"
+                      "i128": "81829"
                     }
                   },
                   {

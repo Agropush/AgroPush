@@ -19,7 +19,7 @@
 mod gas_footprint_tests {
     use crate::{EscrowContract, EscrowContractClient};
     use soroban_sdk::{
-        testutils::{Address as _, Budget as _},
+        testutils::Address as _,
         token, Address, Env, String,
     };
 
@@ -64,7 +64,7 @@ mod gas_footprint_tests {
             let env = Env::default();
             env.mock_all_auths();
             // Disable the budget so setup calls don't count toward measurements
-            env.budget().reset_unlimited();
+            env.cost_estimate().budget().reset_unlimited();
 
             let admin = Address::generate(&env);
             let buyer = Address::generate(&env);
@@ -92,10 +92,11 @@ mod gas_footprint_tests {
 
         /// Reset the budget, run `f`, then return (cpu_insns, mem_bytes).
         fn measure<F: FnOnce()>(&self, f: F) -> (u64, u64) {
-            self.env.budget().reset_unlimited();
+            self.env.cost_estimate().budget().reset_unlimited();
             f();
-            let cpu = self.env.budget().cpu_instruction_count();
-            let mem = self.env.budget().memory_bytes_count();
+            let budget = self.env.cost_estimate().budget();
+            let cpu = budget.cpu_instruction_cost();
+            let mem = budget.memory_bytes_cost();
             (cpu, mem)
         }
     }
