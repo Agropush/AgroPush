@@ -47,7 +47,7 @@ Amana eliminates the "Trust Gap" between buyers and sellers using Soroban Smart 
 ### Install dependencies
 
 ```bash
-cd Amana-Mobile
+cd mobile
 npm install
 ```
 
@@ -102,11 +102,10 @@ npm run lint
 - `src/screens/` – Screen components
 - `src/App.tsx` – Root app component
 - `app.config.ts` – Expo configuration
-- `docs/mobile.md` – Mobile environment specifications
 
 ## Backend integration
 
-See `docs/mobile.md` for mobile API requirements and environment setup.
+This mobile client integrates with the Amana backend API described in the monorepo documentation.
 
 ## Notes
 

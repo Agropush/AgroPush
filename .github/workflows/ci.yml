@@ -51,10 +51,13 @@ jobs:
           filters: |
             frontend:
               - 'frontend/**'
+              - 'frontend/package-lock.json'
             backend:
               - 'backend/**'
+              - 'backend/package-lock.json'
             mobile:
               - 'mobile/**'
+              - 'mobile/package-lock.json'
             contracts:
               - 'contracts/**'
 

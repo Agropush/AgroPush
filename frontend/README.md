@@ -38,7 +38,7 @@ This folder is the user-facing interface for buyers, sellers, and mediators inte
 ### Install dependencies
 
 ```bash
-cd Amana-Frontend
+cd frontend
 npm install
 ```
 
@@ -100,6 +100,6 @@ npm run test:visual:update
 
 ## Repository Scope
 
-This frontend repo was extracted from the main `Amana/` monorepo and now serves as the dedicated UI repository for the Amana project.
+This frontend lives inside the `frontend/` folder of the Amana monorepo. It serves as the UI for buyers, sellers, and mediators interacting with the backend API.
 
-If you are consuming the backend API, point the frontend environment configuration to the Amana Backend Service API endpoint.
+If you are consuming the backend API, point the frontend environment configuration to the correct backend endpoint.

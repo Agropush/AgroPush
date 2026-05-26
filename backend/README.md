@@ -41,7 +41,7 @@ It handles trade orchestration, Supabase metadata, IPFS/Pinata uploads, Stellar 
 ### Install dependencies
 
 ```bash
-cd Amana-backend-service
+cd backend
 npm install
 ```
 
@@ -86,5 +86,4 @@ npm test
 
 ## Repository Scope
 
-This repository contains the backend service code previously maintained inside the main `Amana/` monorepo.
-It is now organized as its own repository for dedicated backend development and deployment.
+This backend service lives inside the `backend/` folder of the Amana monorepo and provides the API, database, and infrastructure integration for the project.
