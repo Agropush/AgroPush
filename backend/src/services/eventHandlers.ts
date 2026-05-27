@@ -12,20 +12,43 @@ type TradeCreatePayload = {
   version: number;
 };
 
+const VALID_PREDECESSORS: Partial<Record<EventType, TradeStatus[]>> = {
+  [EventType.TradeFunded]: [TradeStatus.CREATED],
+  [EventType.DeliveryConfirmed]: [TradeStatus.FUNDED],
+  [EventType.FundsReleased]: [TradeStatus.DELIVERED],
+  [EventType.DisputeInitiated]: [TradeStatus.FUNDED],
+  [EventType.DisputeResolved]: [TradeStatus.DISPUTED],
+};
+
 async function applyStatusTransition(
   tx: Prisma.TransactionClient,
   event: ParsedEvent,
   createPayload: TradeCreatePayload,
 ): Promise<void> {
-  const status = EVENT_TO_STATUS[event.eventType];
-  await tx.trade.upsert({
-    where: { tradeId: event.tradeId },
-    update: {
-      status,
+  const existing = await tx.trade.findUnique({ where: { tradeId: event.tradeId } });
+
+  if (!existing) {
+    await tx.trade.create({ data: createPayload });
+    return;
+  }
+
+  const validPredecessors = VALID_PREDECESSORS[event.eventType];
+  if (!validPredecessors || !validPredecessors.includes(existing.status as TradeStatus)) {
+    return;
+  }
+
+  const result = await tx.trade.updateMany({
+    where: { tradeId: event.tradeId, status: existing.status, version: existing.version },
+    data: {
+      status: EVENT_TO_STATUS[event.eventType],
+      version: { increment: 1 },
       updatedAt: new Date(),
     },
-    create: createPayload,
   });
+
+  if (result.count === 0) {
+    throw new Error("Concurrency conflict");
+  }
 }
 
 export async function handleTradeCreated(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {

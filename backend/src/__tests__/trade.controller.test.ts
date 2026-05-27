@@ -116,7 +116,7 @@ describe("TradeController", () => {
             expect(mockContractService.buildCreateTradeTx).toHaveBeenCalledWith({
                 buyerAddress,
                 sellerAddress,
-                amount: "125.1234567",
+                amountUsdc: "125.1234567",
                 buyerLossBps: 5000,
                 sellerLossBps: 5000,
             });
