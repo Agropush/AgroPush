@@ -19,6 +19,16 @@ jest.mock('@radix-ui/react-dialog', () => {
     return { ...actual };
 });
 
+jest.mock('@/components/ui/LegalDisclaimerModal', () => ({
+    LegalDisclaimerModal: ({ isOpen, onAccept, onDecline }: { isOpen: boolean; onAccept: () => void; onDecline: () => void }) =>
+        isOpen ? (
+            <div data-testid="legal-disclaimer-modal">
+                <button onClick={onAccept}>Accept &amp; Proceed</button>
+                <button onClick={onDecline}>Decline</button>
+            </div>
+        ) : null,
+}));
+
 jest.mock('@/lib/api', () => ({
     api: {
         trades: {
@@ -173,7 +183,7 @@ describe('Step3Review', () => {
             const submitButton = screen.getByRole('button', { name: /lock funds & create trade/i });
             await user.click(submitButton);
 
-            expect(screen.getByText(/loss-sharing terms/i)).toBeInTheDocument();
+            expect(screen.getByTestId('legal-disclaimer-modal')).toBeInTheDocument();
         });
 
         it('should close disclaimer modal when decline is clicked', async () => {
@@ -181,10 +191,10 @@ describe('Step3Review', () => {
             renderWithProvider();
 
             await user.click(screen.getByRole('button', { name: /lock funds & create trade/i }));
-            expect(screen.getByText(/loss-sharing terms/i)).toBeInTheDocument();
+            expect(screen.getByTestId('legal-disclaimer-modal')).toBeInTheDocument();
 
             await user.click(screen.getByRole('button', { name: /decline/i }));
-            expect(screen.queryByText(/loss-sharing terms/i)).not.toBeInTheDocument();
+            expect(screen.queryByTestId('legal-disclaimer-modal')).not.toBeInTheDocument();
         });
     });
 
@@ -200,10 +210,9 @@ describe('Step3Review', () => {
             const user = userEvent.setup();
             renderWithProvider();
 
-            const submitButton = screen.getByRole('button', { name: /lock funds & create trade/i });
-            await user.click(submitButton);
+            await user.click(screen.getByRole('button', { name: /lock funds & create trade/i }));
+            await user.click(screen.getByRole('button', { name: /accept/i }));
 
-            // After clicking, button should show loading state
             await waitFor(() => {
                 expect(screen.getByText(/creating trade/i)).toBeInTheDocument();
             });
@@ -213,8 +222,8 @@ describe('Step3Review', () => {
             const user = userEvent.setup();
             renderWithProvider();
 
-            const submitButton = screen.getByRole('button', { name: /lock funds & create trade/i });
-            await user.click(submitButton);
+            await user.click(screen.getByRole('button', { name: /lock funds & create trade/i }));
+            await user.click(screen.getByRole('button', { name: /accept/i }));
 
             await waitFor(() => {
                 const loadingButton = screen.getByRole('button', { name: /creating trade/i });
@@ -228,8 +237,8 @@ describe('Step3Review', () => {
             const user = userEvent.setup();
             renderWithProvider();
 
-            const submitButton = screen.getByRole('button', { name: /lock funds & create trade/i });
-            await user.click(submitButton);
+            await user.click(screen.getByRole('button', { name: /lock funds & create trade/i }));
+            await user.click(screen.getByRole('button', { name: /accept/i }));
 
             // Error would be displayed if submission fails
             // This test verifies the error display structure exists
@@ -259,51 +268,40 @@ describe('Step3Review', () => {
             const user = userEvent.setup();
             renderWithProvider();
 
-            const submitButton = screen.getByRole('button', { name: /lock funds & create trade/i });
-            await user.click(submitButton);
-
-            // After successful submission, success state would be displayed
-            // This test verifies the success display structure exists
+            await user.click(screen.getByRole('button', { name: /lock funds & create trade/i }));
+            await user.click(screen.getByRole('button', { name: /accept/i }));
         });
 
         it('should display trade ID after successful submission', async () => {
             const user = userEvent.setup();
             renderWithProvider();
 
-            const submitButton = screen.getByRole('button', { name: /lock funds & create trade/i });
-            await user.click(submitButton);
-
-            // Trade ID would be displayed after successful submission
+            await user.click(screen.getByRole('button', { name: /lock funds & create trade/i }));
+            await user.click(screen.getByRole('button', { name: /accept/i }));
         });
 
         it('should display transaction hash after successful submission', async () => {
             const user = userEvent.setup();
             renderWithProvider();
 
-            const submitButton = screen.getByRole('button', { name: /lock funds & create trade/i });
-            await user.click(submitButton);
-
-            // Transaction hash would be displayed after successful submission
+            await user.click(screen.getByRole('button', { name: /lock funds & create trade/i }));
+            await user.click(screen.getByRole('button', { name: /accept/i }));
         });
 
         it('should display view trade details button after successful submission', async () => {
             const user = userEvent.setup();
             renderWithProvider();
 
-            const submitButton = screen.getByRole('button', { name: /lock funds & create trade/i });
-            await user.click(submitButton);
-
-            // View trade details button would be displayed after successful submission
+            await user.click(screen.getByRole('button', { name: /lock funds & create trade/i }));
+            await user.click(screen.getByRole('button', { name: /accept/i }));
         });
 
         it('should display view all trades link after successful submission', async () => {
             const user = userEvent.setup();
             renderWithProvider();
 
-            const submitButton = screen.getByRole('button', { name: /lock funds & create trade/i });
-            await user.click(submitButton);
-
-            // View all trades link would be displayed after successful submission
+            await user.click(screen.getByRole('button', { name: /lock funds & create trade/i }));
+            await user.click(screen.getByRole('button', { name: /accept/i }));
         });
     });
 
