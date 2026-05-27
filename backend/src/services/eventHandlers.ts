@@ -1,6 +1,7 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, TradeStatus } from "@prisma/client";
 import { EventType, ParsedEvent, EVENT_TO_STATUS } from "../types/events";
 import { appLogger } from "../middleware/logger";
+import { webhookService } from "./webhook.service";
 
 type TradeCreatePayload = {
   tradeId: string;
@@ -37,6 +38,7 @@ export async function handleTradeCreated(tx: Prisma.TransactionClient, event: Pa
     version: 1,
   });
   appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] TradeCreated");
+  webhookService.dispatch(event.tradeId, TradeStatus.CREATED, { ledger: event.ledgerSequence });
 }
 
 export async function handleTradeFunded(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
@@ -48,6 +50,7 @@ export async function handleTradeFunded(tx: Prisma.TransactionClient, event: Par
     version: 1,
   });
   appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] TradeFunded");
+  webhookService.dispatch(event.tradeId, TradeStatus.FUNDED, { ledger: event.ledgerSequence });
 }
 
 export async function handleDeliveryConfirmed(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
@@ -59,6 +62,7 @@ export async function handleDeliveryConfirmed(tx: Prisma.TransactionClient, even
     version: 1,
   });
   appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] DeliveryConfirmed");
+  webhookService.dispatch(event.tradeId, TradeStatus.DELIVERED, { ledger: event.ledgerSequence });
 }
 
 export async function handleFundsReleased(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
@@ -70,6 +74,7 @@ export async function handleFundsReleased(tx: Prisma.TransactionClient, event: P
     version: 1,
   });
   appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] FundsReleased");
+  webhookService.dispatch(event.tradeId, TradeStatus.COMPLETED, { ledger: event.ledgerSequence });
 }
 
 export async function handleDisputeInitiated(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
@@ -81,6 +86,7 @@ export async function handleDisputeInitiated(tx: Prisma.TransactionClient, event
     version: 1,
   });
   appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] DisputeInitiated");
+  webhookService.dispatch(event.tradeId, TradeStatus.DISPUTED, { ledger: event.ledgerSequence });
 }
 
 export async function handleDisputeResolved(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
@@ -92,6 +98,7 @@ export async function handleDisputeResolved(tx: Prisma.TransactionClient, event:
     version: 1,
   });
   appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] DisputeResolved");
+  webhookService.dispatch(event.tradeId, TradeStatus.COMPLETED, { ledger: event.ledgerSequence });
 }
 
 /** Dispatch a parsed event to the correct handler */
