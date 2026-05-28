@@ -183,10 +183,29 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
 
       - name: Test
         if: needs.changes.outputs.contracts == 'true'
         run: cargo test
+
+      - name: Build WASM artifact
+        if: needs.changes.outputs.contracts == 'true'
+        run: cargo build --target wasm32-unknown-unknown --features wasm --release
+
+      - name: Verify WASM ABI hash
+        if: needs.changes.outputs.contracts == 'true'
+        run: |
+          WASM_FILE="target/wasm32-unknown-unknown/release/amana_escrow.wasm"
+          if [ -f "$WASM_FILE" ]; then
+            WASM_HASH=$(sha256sum "$WASM_FILE" | cut -d' ' -f1)
+            echo "WASM ABI hash: $WASM_HASH"
+            echo "WASM_ABI_HASH=$WASM_HASH" >> $GITHUB_ENV
+          else
+            echo "ERROR: WASM artifact not found at $WASM_FILE"
+            exit 1
+          fi
 
       - name: Skip note (no contract changes)
         if: needs.changes.outputs.contracts != 'true'

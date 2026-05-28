@@ -9,7 +9,7 @@ if (processEnv.NODE_ENV === 'test') {
 }
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'staging', 'test']).default('development'),
   PORT: z.coerce.number().default(4000),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('86400'),
