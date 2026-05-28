@@ -44,7 +44,10 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM"
                 },
                 {
-                  "u32": 821
+                  "u32": 6365
+                },
+                {
+                  "address": "CACMVW2KK4H5FZDFF2AUCAKQTEJMZZWJUIZF23XMRVYQBSXYLHZ6BKWN"
                 }
               ]
             }
@@ -66,7 +69,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                 },
                 {
-                  "i128": "38279"
+                  "i128": "32534"
                 }
               ]
             }
@@ -154,7 +157,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "38279"
+                      "i128": "32534"
                     }
                   },
                   {
@@ -170,7 +173,7 @@
                       "symbol": "buyer_loss_bps"
                     },
                     "val": {
-                      "u32": 0
+                      "u32": 5024
                     }
                   },
                   {
@@ -206,7 +209,7 @@
                       "symbol": "seller_loss_bps"
                     },
                     "val": {
-                      "u32": 10000
+                      "u32": 4976
                     }
                   },
                   {
@@ -309,7 +312,7 @@
                         ]
                       },
                       "val": {
-                        "u32": 821
+                        "u32": 6365
                       }
                     },
                     {
@@ -322,6 +325,18 @@
                       },
                       "val": {
                         "bool": true
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "SourceToken"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "address": "CACMVW2KK4H5FZDFF2AUCAKQTEJMZZWJUIZF23XMRVYQBSXYLHZ6BKWN"
                       }
                     },
                     {
@@ -410,7 +425,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "38279"
+                      "i128": "32534"
                     }
                   },
                   {
