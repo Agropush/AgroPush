@@ -97,7 +97,7 @@ export class TradeController {
         await this.contractService.buildCreateTradeTx({
           buyerAddress,
           sellerAddress,
-          amount: normalizedAmountUsdc,
+          amountUsdc: normalizedAmountUsdc,
           buyerLossBps: buyerLossBps as number,
           sellerLossBps: sellerLossBps as number,
         });
