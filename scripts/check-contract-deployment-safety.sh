@@ -22,10 +22,10 @@ require_file "$contract_dir/tests/storage_golden_tests.rs"
 require_file "$contract_dir/tests/auth_matrix_tests.rs"
 require_file "$contract_dir/src/tests/migration_tests.rs"
 
-grep -Eq '^wasm = \[\]$' "$manifest" \
+grep -Eq '^wasm = \[\][[:space:]]*$' "$manifest" \
   || fail "Cargo.toml must expose the explicit wasm feature used for deployment builds"
 
-grep -Eq 'crate-type = \["rlib"\]' "$manifest" \
+grep -Eq '^crate-type = \["rlib"\][[:space:]]*$' "$manifest" \
   || fail "native test crate-type must stay rlib unless CI deployment build steps are updated"
 
 grep -q '#!\[no_std\]' "$contract_src" \
