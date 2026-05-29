@@ -1,4 +1,22 @@
-import { Prisma, PrismaClient, TradeStatus } from "@prisma/client";
+import crypto from "crypto";
+import { Prisma, PrismaClient, Trade, TradeStatus, DisputeStatus } from "@prisma/client";
+import { prisma as defaultPrisma } from "../lib/db";
+import { ContractService } from "./contract.service";
+import { appLogger } from "../middleware/logger";
+import { TracingHelper } from "../config/tracing";
+
+function sha256(value: string): string {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+export interface CreatePendingTradeInput {
+  tradeId: string;
+  buyerAddress: string;
+  sellerAddress: string;
+  amountUsdc: string;
+  buyerLossBps: number;
+  sellerLossBps: number;
+}
 
 export type TradeListFilters = {
   status?: TradeStatus;
@@ -7,6 +25,8 @@ export type TradeListFilters = {
   sort?: string;
 };
 
+type TradeDatabase = Pick<PrismaClient, "trade" | "dispute" | "disputeCategory">;
+
 export class TradeAccessDeniedError extends Error {
   constructor() {
     super("Forbidden");
@@ -14,8 +34,51 @@ export class TradeAccessDeniedError extends Error {
   }
 }
 
+export class DisputeTradeStatusError extends Error {
+  status = 400;
+  constructor(status: string) {
+    super(`Trade must be in FUNDED or DELIVERED status to initiate a dispute (current: ${status})`);
+    this.name = "DisputeTradeStatusError";
+  }
+}
+
+export class DisputeCategoryValidationError extends Error {
+  status = 400;
+
+  constructor(category: string | number) {
+    super(`Invalid dispute category: ${category}`);
+    this.name = "DisputeCategoryValidationError";
+  }
+}
+
 export class TradeService {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: TradeDatabase = defaultPrisma,
+    private readonly contractService: ContractService = new ContractService(),
+  ) { }
+
+  async createPendingTrade(input: CreatePendingTradeInput): Promise<Trade> {
+    appLogger.info({
+      requestId: undefined, // Will be filled by context if available
+      userId: input.buyerAddress,
+      paymentId: input.tradeId,
+      provider: "stellar",
+      status: "authorization_started",
+      timestamp: new Date().toISOString()
+    }, "Payment authorization started");
+
+    TracingHelper.addEvent("authorization_started", {
+      paymentId: input.tradeId,
+      userId: input.buyerAddress
+    });
+
+    return this.prisma.trade.create({
+      data: {
+        ...input,
+        status: TradeStatus.PENDING_SIGNATURE,
+      },
+    });
+  }
 
   async listUserTrades(address: string, filters: TradeListFilters) {
     const page = Math.max(1, filters.page ?? 1);
@@ -24,7 +87,7 @@ export class TradeService {
     const orderBy = this.parseSort(filters.sort);
 
     const where: Prisma.TradeWhereInput = {
-      OR: [{ buyer: address }, { seller: address }],
+      OR: [{ buyerAddress: address }, { sellerAddress: address }],
       ...(filters.status ? { status: filters.status } : {}),
     };
 
@@ -67,7 +130,7 @@ export class TradeService {
       return null;
     }
 
-    if (trade.buyer !== callerAddress && trade.seller !== callerAddress) {
+    if (trade.buyerAddress !== callerAddress && trade.sellerAddress !== callerAddress) {
       throw new TradeAccessDeniedError();
     }
 
@@ -77,7 +140,7 @@ export class TradeService {
   async getUserStats(address: string) {
     const trades = await this.prisma.trade.findMany({
       where: {
-        OR: [{ buyer: address }, { seller: address }],
+        OR: [{ buyerAddress: address }, { sellerAddress: address }],
       },
       select: {
         amountUsdc: true,
@@ -86,6 +149,7 @@ export class TradeService {
     });
 
     const openStatuses = new Set<TradeStatus>([
+      TradeStatus.PENDING_SIGNATURE,
       TradeStatus.CREATED,
       TradeStatus.FUNDED,
       TradeStatus.DELIVERED,
@@ -106,9 +170,9 @@ export class TradeService {
     };
   }
 
-  private parseSort(sort?: string): Prisma.TradeOrderByWithRelationInput {
+  private parseSort(sort?: string): Prisma.TradeOrderByWithRelationInput[] {
     if (!sort) {
-      return { createdAt: "desc" };
+      return [{ createdAt: "desc" }, { id: "desc" }];
     }
 
     const [fieldRaw, dirRaw] = sort.split(":");
@@ -118,8 +182,8 @@ export class TradeService {
     const allowedFields = new Set<string>([
       "id",
       "tradeId",
-      "buyer",
-      "seller",
+      "buyerAddress",
+      "sellerAddress",
       "amountUsdc",
       "status",
       "createdAt",
@@ -127,9 +191,96 @@ export class TradeService {
     ]);
 
     if (!allowedFields.has(fieldRaw)) {
-      return { createdAt: "desc" };
+      return [{ createdAt: "desc" }, { id: "desc" }];
     }
 
-    return { [field]: direction };
+    if (fieldRaw === "id") {
+      return [{ id: direction }];
+    }
+
+    return [{ [field]: direction }, { id: direction }];
   }
+
+  async initiateDispute(
+    id: string,
+    callerAddress: string,
+    reason: string,
+    category: string,
+    categoryId?: number,
+  ) {
+    const trade = await this.getTradeById(id, callerAddress);
+    if (!trade) {
+      throw new Error("Trade not found");
+    }
+
+    // Access check is already done by getTradeById, but let's be explicit
+    if (trade.buyerAddress !== callerAddress && trade.sellerAddress !== callerAddress) {
+      throw new TradeAccessDeniedError();
+    }
+
+    // Check status: FUNDED or DELIVERED
+    if (trade.status !== TradeStatus.FUNDED && trade.status !== TradeStatus.DELIVERED) {
+      throw new DisputeTradeStatusError(trade.status);
+    }
+
+    const resolvedCategoryId = await this.resolveDisputeCategoryId(category, categoryId);
+    const reasonHash = sha256(reason);
+
+    // Build contract transaction
+    // Note: getTradeById handles both numeric and string IDs for local lookup,
+    // but the contract needs the tradeId (the blockchain-sourced one).
+    const { unsignedXdr } = await this.contractService.buildInitiateDisputeTx({
+      tradeId: trade.tradeId,
+      initiatorAddress: callerAddress,
+      reasonHash,
+    });
+
+    // Create DB record
+    // We store the plaintext reason for human review.
+    await this.prisma.dispute.create({
+      data: {
+        tradeId: trade.tradeId,
+        initiator: callerAddress,
+        reason,
+        status: DisputeStatus.OPEN,
+        categoryId: resolvedCategoryId,
+      },
+    });
+
+    return { unsignedXdr };
+  }
+
+  private async resolveDisputeCategoryId(category: string, categoryId?: number): Promise<number> {
+    if (categoryId !== undefined) {
+      const categoryRecord = await this.prisma.disputeCategory.findFirst({
+        where: { id: categoryId, isActive: true },
+        select: { id: true },
+      });
+
+      if (!categoryRecord) {
+        throw new DisputeCategoryValidationError(categoryId);
+      }
+
+      return categoryRecord.id;
+    }
+
+    const normalizedCategory = category.trim();
+    if (!normalizedCategory) {
+      throw new DisputeCategoryValidationError(category);
+    }
+
+    const categoryRecord = await this.prisma.disputeCategory.findFirst({
+      where: { name: normalizedCategory, isActive: true },
+      select: { id: true },
+    });
+
+    if (!categoryRecord) {
+      throw new DisputeCategoryValidationError(normalizedCategory);
+    }
+
+    return categoryRecord.id;
+  }
+
+  /** Alias for listUserTrades — used by trade.controller.test.ts */
+  listTrades = this.listUserTrades.bind(this);
 }

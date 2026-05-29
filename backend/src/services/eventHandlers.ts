@@ -1,108 +1,140 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, TradeStatus } from "@prisma/client";
 import { EventType, ParsedEvent, EVENT_TO_STATUS } from "../types/events";
+import { appLogger } from "../middleware/logger";
+import { webhookService } from "./webhook.service";
 
-/**
- * Event handler functions — one per Soroban contract event type.
- * Each handler upserts the corresponding Trade record in the database.
- */
+type TradeCreatePayload = {
+  tradeId: string;
+  buyerAddress: string;
+  sellerAddress: string;
+  amountUsdc?: string;
+  status: (typeof EVENT_TO_STATUS)[EventType];
+  version: number;
+};
 
-export async function handleTradeCreated(prisma: PrismaClient, event: ParsedEvent): Promise<void> {
-  const status = EVENT_TO_STATUS[EventType.TradeCreated];
-  await prisma.trade.upsert({
-    where: { tradeId: event.tradeId },
-    update: {
-      status,
+const VALID_PREDECESSORS: Partial<Record<EventType, TradeStatus[]>> = {
+  [EventType.TradeFunded]: [TradeStatus.CREATED],
+  [EventType.DeliveryConfirmed]: [TradeStatus.FUNDED],
+  [EventType.FundsReleased]: [TradeStatus.DELIVERED],
+  [EventType.DisputeInitiated]: [TradeStatus.FUNDED],
+  [EventType.DisputeResolved]: [TradeStatus.DISPUTED],
+};
+
+async function applyStatusTransition(
+  tx: Prisma.TransactionClient,
+  event: ParsedEvent,
+  createPayload: TradeCreatePayload,
+): Promise<void> {
+  const existing = await tx.trade.findUnique({ where: { tradeId: event.tradeId } });
+
+  if (!existing) {
+    await tx.trade.create({ data: createPayload });
+    return;
+  }
+
+  const validPredecessors = VALID_PREDECESSORS[event.eventType];
+  if (!validPredecessors || !validPredecessors.includes(existing.status as TradeStatus)) {
+    return;
+  }
+
+  const result = await tx.trade.updateMany({
+    where: { tradeId: event.tradeId, status: existing.status, version: existing.version },
+    data: {
+      status: EVENT_TO_STATUS[event.eventType],
+      version: { increment: 1 },
       updatedAt: new Date(),
     },
-    create: {
-      tradeId: event.tradeId,
-      buyer: (event.data.buyer as string) || "",
-      seller: (event.data.seller as string) || "",
-      amountUsdc: String(event.data.amount_usdc ?? "0"),
-      status,
-    },
   });
-  console.log(`[EventHandler] TradeCreated — tradeId=${event.tradeId}, ledger=${event.ledgerSequence}`);
+
+  if (result.count === 0) {
+    throw new Error("Concurrency conflict");
+  }
 }
 
-export async function handleTradeFunded(prisma: PrismaClient, event: ParsedEvent): Promise<void> {
-  const status = EVENT_TO_STATUS[EventType.TradeFunded];
-  await prisma.trade.upsert({
-    where: { tradeId: event.tradeId },
-    update: { status, updatedAt: new Date() },
-    create: {
-      tradeId: event.tradeId,
-      buyer: "",
-      seller: "",
-      status,
-    },
+export async function handleTradeCreated(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
+  await applyStatusTransition(tx, event, {
+    tradeId: event.tradeId,
+    buyerAddress: (event.data.buyer as string) || "",
+    sellerAddress: (event.data.seller as string) || "",
+    amountUsdc: String(event.data.amount_usdc ?? "0"),
+    status: EVENT_TO_STATUS[EventType.TradeCreated],
+    version: 1,
   });
-  console.log(`[EventHandler] TradeFunded — tradeId=${event.tradeId}, ledger=${event.ledgerSequence}`);
+  appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] TradeCreated");
+  webhookService.dispatch(event.tradeId, TradeStatus.CREATED, { ledger: event.ledgerSequence });
 }
 
-export async function handleDeliveryConfirmed(prisma: PrismaClient, event: ParsedEvent): Promise<void> {
-  const status = EVENT_TO_STATUS[EventType.DeliveryConfirmed];
-  await prisma.trade.upsert({
-    where: { tradeId: event.tradeId },
-    update: { status, updatedAt: new Date() },
-    create: {
-      tradeId: event.tradeId,
-      buyer: "",
-      seller: "",
-      status,
-    },
+export async function handleTradeFunded(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
+  await applyStatusTransition(tx, event, {
+    tradeId: event.tradeId,
+    buyerAddress: "",
+    sellerAddress: "",
+    status: EVENT_TO_STATUS[EventType.TradeFunded],
+    version: 1,
   });
-  console.log(`[EventHandler] DeliveryConfirmed — tradeId=${event.tradeId}, ledger=${event.ledgerSequence}`);
+  appLogger.info({
+    requestId: undefined,
+    userId: undefined,
+    paymentId: event.tradeId,
+    provider: "stellar",
+    status: "authorization_approved",
+    timestamp: new Date().toISOString()
+  }, "Payment authorization approved");
+  appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] TradeFunded");
+  webhookService.dispatch(event.tradeId, TradeStatus.FUNDED, { ledger: event.ledgerSequence });
 }
 
-export async function handleFundsReleased(prisma: PrismaClient, event: ParsedEvent): Promise<void> {
-  const status = EVENT_TO_STATUS[EventType.FundsReleased];
-  await prisma.trade.upsert({
-    where: { tradeId: event.tradeId },
-    update: { status, updatedAt: new Date() },
-    create: {
-      tradeId: event.tradeId,
-      buyer: "",
-      seller: "",
-      status,
-    },
+export async function handleDeliveryConfirmed(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
+  await applyStatusTransition(tx, event, {
+    tradeId: event.tradeId,
+    buyerAddress: "",
+    sellerAddress: "",
+    status: EVENT_TO_STATUS[EventType.DeliveryConfirmed],
+    version: 1,
   });
-  console.log(`[EventHandler] FundsReleased — tradeId=${event.tradeId}, ledger=${event.ledgerSequence}`);
+  appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] DeliveryConfirmed");
+  webhookService.dispatch(event.tradeId, TradeStatus.DELIVERED, { ledger: event.ledgerSequence });
 }
 
-export async function handleDisputeInitiated(prisma: PrismaClient, event: ParsedEvent): Promise<void> {
-  const status = EVENT_TO_STATUS[EventType.DisputeInitiated];
-  await prisma.trade.upsert({
-    where: { tradeId: event.tradeId },
-    update: { status, updatedAt: new Date() },
-    create: {
-      tradeId: event.tradeId,
-      buyer: "",
-      seller: "",
-      status,
-    },
+export async function handleFundsReleased(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
+  await applyStatusTransition(tx, event, {
+    tradeId: event.tradeId,
+    buyerAddress: "",
+    sellerAddress: "",
+    status: EVENT_TO_STATUS[EventType.FundsReleased],
+    version: 1,
   });
-  console.log(`[EventHandler] DisputeInitiated — tradeId=${event.tradeId}, ledger=${event.ledgerSequence}`);
+  appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] FundsReleased");
+  webhookService.dispatch(event.tradeId, TradeStatus.COMPLETED, { ledger: event.ledgerSequence });
 }
 
-export async function handleDisputeResolved(prisma: PrismaClient, event: ParsedEvent): Promise<void> {
-  const status = EVENT_TO_STATUS[EventType.DisputeResolved];
-  await prisma.trade.upsert({
-    where: { tradeId: event.tradeId },
-    update: { status, updatedAt: new Date() },
-    create: {
-      tradeId: event.tradeId,
-      buyer: "",
-      seller: "",
-      status,
-    },
+export async function handleDisputeInitiated(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
+  await applyStatusTransition(tx, event, {
+    tradeId: event.tradeId,
+    buyerAddress: "",
+    sellerAddress: "",
+    status: EVENT_TO_STATUS[EventType.DisputeInitiated],
+    version: 1,
   });
-  console.log(`[EventHandler] DisputeResolved — tradeId=${event.tradeId}, ledger=${event.ledgerSequence}`);
+  appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] DisputeInitiated");
+  webhookService.dispatch(event.tradeId, TradeStatus.DISPUTED, { ledger: event.ledgerSequence });
+}
+
+export async function handleDisputeResolved(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
+  await applyStatusTransition(tx, event, {
+    tradeId: event.tradeId,
+    buyerAddress: "",
+    sellerAddress: "",
+    status: EVENT_TO_STATUS[EventType.DisputeResolved],
+    version: 1,
+  });
+  appLogger.debug({ tradeId: event.tradeId, ledger: event.ledgerSequence }, "[EventHandler] DisputeResolved");
+  webhookService.dispatch(event.tradeId, TradeStatus.COMPLETED, { ledger: event.ledgerSequence });
 }
 
 /** Dispatch a parsed event to the correct handler */
-export async function dispatchEvent(prisma: PrismaClient, event: ParsedEvent): Promise<void> {
-  const handlers: Record<EventType, (p: PrismaClient, e: ParsedEvent) => Promise<void>> = {
+export async function dispatchEvent(tx: Prisma.TransactionClient, event: ParsedEvent): Promise<void> {
+  const handlers: Record<EventType, (t: Prisma.TransactionClient, e: ParsedEvent) => Promise<void>> = {
     [EventType.TradeCreated]: handleTradeCreated,
     [EventType.TradeFunded]: handleTradeFunded,
     [EventType.DeliveryConfirmed]: handleDeliveryConfirmed,
@@ -113,8 +145,8 @@ export async function dispatchEvent(prisma: PrismaClient, event: ParsedEvent): P
 
   const handler = handlers[event.eventType];
   if (handler) {
-    await handler(prisma, event);
+    await handler(tx, event);
   } else {
-    console.warn(`[EventHandler] Unknown event type: ${event.eventType}`);
+    appLogger.warn({ eventType: event.eventType }, "[EventHandler] Unknown event type");
   }
 }

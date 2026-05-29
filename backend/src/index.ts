@@ -1,44 +1,67 @@
-import dotenv from "dotenv";
-import cors from "cors";
+import "./config/loadEnv";
 import express from "express";
 import fs from "fs";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
-import { PrismaClient } from "@prisma/client";
-import { createApp } from "./app";
-import { createTradeRouter } from "./routes/trade.routes";
-import userRoutes from "./routes/user.routes";
-import { walletRoutes } from "./routes/wallet.routes";
+import { prisma } from "./lib/db";
 import { EventListenerService } from "./services/eventListener.service";
+import { createApp } from "./app";
+import { env } from "./config/env";
+import { appLogger } from "./middleware/logger";
+import { initializeTracing } from "./config/tracing";
 
-dotenv.config();
+env; // Validate early
 
-const prisma = new PrismaClient();
-const app = createApp(prisma);
-const port = Number(process.env.PORT || 4000);
+// Initialize distributed tracing before any other imports
+initializeTracing();
 
-app.use(cors());
-app.use(express.json());
-app.use("/trades", createTradeRouter(prisma));
-app.use("/wallet", walletRoutes);
+const app = createApp();
+const port = env.PORT;
 
 const docsDir = path.join(__dirname, "docs");
 const openapiYamlPath = path.join(docsDir, "openapi.yaml");
 const openapiJsonPath = path.join(docsDir, "openapi.json");
 
-let openapiSpec: unknown = null;
+let openapiSpec: Record<string, unknown> | null = null;
 try {
-  openapiSpec = YAML.load(openapiYamlPath);
+  openapiSpec = YAML.load(openapiYamlPath) as Record<string, unknown>;
 } catch (error) {
-  console.warn("OpenAPI spec could not be loaded:", error);
+  appLogger.warn({ error }, "OpenAPI spec could not be loaded");
 }
 
-if (process.env.NODE_ENV !== "production" && openapiSpec) {
+if (env.NODE_ENV !== "production" && openapiSpec) {
+  // Override server URL from env so Try It Out links work in deployed environments
+  if (env.API_PUBLIC_URL && Array.isArray(openapiSpec.servers)) {
+    openapiSpec.servers = [{ url: env.API_PUBLIC_URL }];
+  }
+
+  // Auto-generate stable operationId for every operation so generated docs
+  // have consistent anchor links and code-gen-friendly function names
+  if (typeof openapiSpec.paths === "object" && openapiSpec.paths) {
+    for (const [path, methods] of Object.entries(
+      openapiSpec.paths as Record<string, unknown>,
+    )) {
+      for (const [method, operation] of Object.entries(
+        methods as Record<string, unknown>,
+      )) {
+        if (typeof operation === "object" && operation !== null && !(operation as Record<string, unknown>).operationId) {
+          const safePath = path
+            .replace(/[{}]/g, "")
+            .replace(/[^a-zA-Z0-9_/]/g, "_")
+            .replace(/\/+/g, ".")
+            .replace(/^\.|\.$/g, "")
+            .replace(/\.+/g, ".");
+          (operation as Record<string, unknown>).operationId = `${method}${safePath ? `.${safePath}` : ""}`;
+        }
+      }
+    }
+  }
+
   try {
     fs.writeFileSync(openapiJsonPath, JSON.stringify(openapiSpec, null, 2));
   } catch (error) {
-    console.warn("OpenAPI spec could not be exported:", error);
+    appLogger.warn({ error }, "OpenAPI spec could not be exported");
   }
 
   app.get("/api/docs/openapi.json", (_req, res) => {
@@ -48,23 +71,21 @@ if (process.env.NODE_ENV !== "production" && openapiSpec) {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 }
 
-app.use("/users", userRoutes);
-
 const eventListenerService = new EventListenerService(prisma);
 
 app.listen(port, async () => {
-  console.log(`Amana backend listening on port ${port}`);
+  appLogger.info({ port }, "Amana backend listening");
 
   try {
     await eventListenerService.start();
-    console.log("EventListenerService started successfully");
+    appLogger.info("EventListenerService started successfully");
   } catch (error) {
-    console.error("Failed to start EventListenerService:", error);
+    appLogger.error({ error }, "Failed to start EventListenerService");
   }
 });
 
 const shutdown = async (signal: string) => {
-  console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+  appLogger.info({ signal }, "Received shutdown signal. Shutting down gracefully...");
   eventListenerService.stop();
   await prisma.$disconnect();
   process.exit(0);

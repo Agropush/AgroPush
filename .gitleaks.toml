@@ -1,0 +1,107 @@
+# .gitleaks.toml — Gitleaks configuration for the Amana repository
+# Docs: https://github.com/gitleaks/gitleaks
+
+title = "Amana Gitleaks Config"
+
+[extend]
+# Extend the default built-in ruleset
+useDefault = true
+disabledRules = ["generic-api-key"]
+
+# ── Allowlist ──────────────────────────────────────────────────────────────────
+# Paths and patterns that are safe to ignore.
+[[allowlists]]
+description = "Example / placeholder files"
+paths = [
+  ".env.*.example",
+  ".env.example",
+  "docs/",
+  "*.md",
+]
+
+[[allowlists]]
+description = "Test files — fake credentials used in test fixtures"
+paths = [
+  "backend/src/__tests__/",
+  "**/*.test.ts",
+  "**/*.spec.ts",
+]
+
+[[allowlists]]
+description = "Prisma migration SQL — no secrets allowed but allowlist format strings"
+paths = [
+  "backend/prisma/migrations/",
+]
+
+[[allowlists]]
+description = "Known false positives in prior PR commits"
+commits = [
+  "3c1383c9554eec1424a0ade639d77aa50b699ea3",
+  "3f109294350380548154ec5984e8f03b66f98c2d",
+]
+
+[[allowlists]]
+description = "Test fixture literals that are not production secrets"
+regexes = [
+  '''TEST_PUBLIC_KEY_FOR_MOCK''',
+  '''postgresql://localhost:5432/test''',
+]
+
+# ── Custom rules ──────────────────────────────────────────────────────────────
+
+[[rules]]
+id          = "amana-jwt-secret"
+description = "Amana JWT_SECRET assigned a real value"
+regex       = '''[Jj][Ww][Tt]_[Ss][Ee][Cc][Rr][Ee][Tt]\s*=\s*["']?(?!your-|change-|test-)[A-Za-z0-9+/=_\-]{20,}'''
+tags        = ["secret", "jwt"]
+severity    = "critical"
+
+[[rules]]
+id          = "stellar-secret-key"
+description = "Stellar secret key (starts with S, 56 chars)"
+# Stellar secret keys: S + 55 base32 chars
+regex       = '''\bS[A-Z2-7]{55}\b'''
+tags        = ["stellar", "key"]
+severity    = "critical"
+
+[[rules]]
+id          = "pinata-jwt"
+description = "Pinata IPFS JWT token"
+regex       = '''[Pp][Ii][Nn][Aa][Tt][Aa]_[Jj][Ww][Tt]\s*=\s*["']?ey[A-Za-z0-9_\-]+\.ey[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+'''
+tags        = ["pinata", "ipfs", "jwt"]
+severity    = "critical"
+
+[[rules]]
+id          = "supabase-service-role-key"
+description = "Supabase service role key (JWT)"
+regex       = '''[Ss][Uu][Pp][Aa][Bb][Aa][Ss][Ee]_[Ss][Ee][Rr][Vv][Ii][Cc][Ee]_[Rr][Oo][Ll][Ee]_[Kk][Ee][Yy]\s*=\s*["']?ey[A-Za-z0-9_\-]+\.ey[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+'''
+tags        = ["supabase", "jwt"]
+severity    = "critical"
+
+[[rules]]
+id          = "ed25519-private-key-pem"
+description = "Ed25519 / EC private key PEM block"
+regex       = '''-----BEGIN (EC |OPENSSH )?PRIVATE KEY-----'''
+tags        = ["pem", "private-key"]
+severity    = "critical"
+
+[[rules]]
+id          = "redis-url-with-password"
+description = "Redis connection string with embedded password"
+regex       = '''redis://:([^@\s$\{]{4,})@'''
+tags        = ["redis", "password"]
+severity    = "high"
+
+[[rules]]
+id          = "generic-api-key-assignment"
+description = "Generic API_KEY / SECRET assignment with a non-placeholder value"
+regex       = '''(?:[Aa][Pp][Ii][_-]?[Kk][Ee][Yy]|[Aa][Pp][Ii][_-]?[Ss][Ee][Cc][Rr][Ee][Tt]|[Ss][Ee][Cc][Rr][Ee][Tt][_-]?[Kk][Ee][Yy])\s*=\s*["']?[A-Za-z0-9+/=_\-]{20,}'''
+tags        = ["api-key"]
+severity    = "high"
+
+[[rules]]
+id          = "database-url-with-password"
+description = "PostgreSQL/MySQL connection string with embedded literal password"
+regex       = '''(?:postgresql|mysql|postgres)://[^:@\s]+:([^@\s$\{][^@\s]*)@'''
+tags        = ["database", "password"]
+severity    = "critical"
