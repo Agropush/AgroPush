@@ -94,6 +94,19 @@ export const envSchema = z.object({
   // Webhooks
   WEBHOOK_URL: z.string().url().optional(),
   WEBHOOK_SECRET: z.string().optional(),
+  // Rate limiting configuration
+  TRUST_PROXY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value: 'true' | 'false') => value === 'true'),
+  RATE_LIMIT_AUTH_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  RATE_LIMIT_AUTH_MAX: z.coerce.number().int().positive().default(10),
+  RATE_LIMIT_AUTH_REFRESH_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  RATE_LIMIT_AUTH_REFRESH_MAX: z.coerce.number().int().positive().default(30),
+  RATE_LIMIT_USER_WINDOW_MS: z.coerce.number().int().positive().default(60 * 1000),
+  RATE_LIMIT_USER_MAX: z.coerce.number().int().positive().default(30),
+  RATE_LIMIT_DISPUTE_WINDOW_MS: z.coerce.number().int().positive().default(60 * 60 * 1000),
+  RATE_LIMIT_DISPUTE_MAX: z.coerce.number().int().positive().default(5),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -51,6 +51,10 @@ function buildCorsOptions(): cors.CorsOptions {
 export function createApp(): express.Application {
   const app = express();
 
+  if (env.TRUST_PROXY) {
+    app.set('trust proxy', 1);
+  }
+
   // Security headers
   app.use(
     helmet({
