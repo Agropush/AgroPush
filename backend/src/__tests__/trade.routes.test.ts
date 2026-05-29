@@ -6,6 +6,7 @@ import { tradeRoutes } from "../routes/trade.routes";
 import { ContractService } from "../services/contract.service";
 import { TradeService } from "../services/trade.service";
 import { AuthService } from "../services/auth.service";
+import { errorHandler } from "../errors/errorHandler";
 
 jest.mock("../services/contract.service");
 jest.mock("../services/trade.service");
@@ -13,6 +14,7 @@ jest.mock("../services/trade.service");
 const app = express();
 app.use(express.json());
 app.use("/trades", tradeRoutes);
+app.use(errorHandler);
 
 describe("Trade Routes", () => {
   const buyerAddress = StellarSdk.Keypair.random().publicKey();
@@ -103,10 +105,12 @@ describe("Trade Routes", () => {
       .send({
         sellerAddress: "not-a-stellar-address",
         amountUsdc: "10",
+        buyerLossBps: 5000,
+        sellerLossBps: 5000,
       });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Invalid sellerAddress");
+    expect(res.body.code).toBe("VALIDATION_ERROR");
   });
 
   it("returns 401 without auth", async () => {

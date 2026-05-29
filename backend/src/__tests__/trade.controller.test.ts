@@ -6,6 +6,8 @@ import { tradeRoutes } from "../routes/trade.routes";
 import { ContractService } from "../services/contract.service";
 import { TradeService } from "../services/trade.service";
 import { AuthService } from "../services/auth.service";
+import { errorHandler } from "../errors/errorHandler";
+import { ErrorCode } from "../errors/errorCodes";
 
 jest.mock("../services/contract.service");
 jest.mock("../services/trade.service");
@@ -13,6 +15,7 @@ jest.mock("../services/trade.service");
 const app = express();
 app.use(express.json());
 app.use("/trades", tradeRoutes);
+app.use(errorHandler);
 
 describe("TradeController", () => {
     const buyerAddress = StellarSdk.Keypair.random().publicKey();
@@ -122,7 +125,7 @@ describe("TradeController", () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toBe("Invalid sellerAddress");
+            expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
         });
 
         it("validates USDC amount parsing", async () => {
@@ -137,7 +140,7 @@ describe("TradeController", () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toBe("Invalid amountUsdc");
+            expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
         });
 
         it("validates buyerLossBps bounds (0-10000)", async () => {
@@ -152,7 +155,7 @@ describe("TradeController", () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toBe("buyerLossBps must be an integer between 0 and 10000");
+            expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
         });
 
         it("validates sellerLossBps bounds (0-10000)", async () => {
@@ -167,7 +170,7 @@ describe("TradeController", () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toBe("sellerLossBps must be an integer between 0 and 10000");
+            expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
         });
 
         it("validates buyerLossBps and sellerLossBps sum to 10000", async () => {
@@ -182,7 +185,7 @@ describe("TradeController", () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toBe("buyerLossBps and sellerLossBps must sum to 10000");
+            expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
         });
 
         it("handles negative amounts", async () => {
@@ -197,7 +200,7 @@ describe("TradeController", () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toBe("Invalid amountUsdc");
+            expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
         });
 
         it("handles zero amounts", async () => {
@@ -212,7 +215,7 @@ describe("TradeController", () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toBe("Invalid amountUsdc");
+            expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
         });
 
         it("returns 401 without auth", async () => {
@@ -925,7 +928,7 @@ describe("TradeController", () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toBe("Invalid sellerAddress");
+            expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
         });
 
         it("handles negative amounts in createTrade", async () => {
@@ -940,7 +943,7 @@ describe("TradeController", () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toBe("Invalid amountUsdc");
+            expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
         });
 
         it("handles unauthorized access in buildDepositTx", async () => {

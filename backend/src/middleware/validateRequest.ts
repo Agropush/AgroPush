@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { AnyZodObject, ZodError } from "zod";
+import { AnyZodObject, ZodError, ZodTypeAny } from "zod";
 import { AppError, ErrorCode } from "../errors/errorCodes";
 
 export const validateRequest = (schema: {
-  body?: AnyZodObject;
+  body?: ZodTypeAny;
   query?: AnyZodObject;
   params?: AnyZodObject;
 }) => {

@@ -1,5 +1,10 @@
 import { Horizon, rpc, Networks } from '@stellar/stellar-sdk';
 
+export const USDC_ISSUER_MAINNET = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
+// Testnet USDC issuer — override via USDC_ISSUER env var if a specific testnet asset is needed.
+export const USDC_ISSUER_TESTNET =
+  process.env.USDC_ISSUER ?? "GDDD3FRCH55BSYNKISYY242HQNIBOH35CQP42NSJABR62XK2JOV5MED6";
+
 // Read network configuration from environment
 const stellarNetwork = process.env.STELLAR_NETWORK || 'testnet';
 const stellarRpcUrl = process.env.STELLAR_RPC_URL || '';
