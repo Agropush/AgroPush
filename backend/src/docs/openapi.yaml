@@ -289,11 +289,17 @@ components:
           properties:
             database:
               $ref: "#/components/schemas/HealthIndicator"
-            redis:
-              $ref: "#/components/schemas/HealthIndicator"
             indexer:
               $ref: "#/components/schemas/HealthIndicator"
-          required: [database, redis, indexer]
+            stellar:
+              $ref: "#/components/schemas/HealthIndicator"
+            ipfs:
+              $ref: "#/components/schemas/HealthIndicator"
+            redis:
+              $ref: "#/components/schemas/HealthIndicator"
+            config:
+              $ref: "#/components/schemas/HealthIndicator"
+          required: [database, indexer, stellar, ipfs, redis, config]
         details:
           type: object
           properties:
@@ -306,7 +312,16 @@ components:
             lastProcessedLedger:
               type: integer
               nullable: true
-          required: [databaseLatency, redisLatency, indexerLagSeconds, lastProcessedLedger]
+            stellarNetwork:
+              type: string
+            ipfsGateway:
+              type: string
+            missingEnvVars:
+              type: array
+              items:
+                type: string
+          required:
+            [databaseLatency, redisLatency, indexerLagSeconds, lastProcessedLedger, stellarNetwork, ipfsGateway, missingEnvVars]
       required: [status, timestamp, uptime, checks, details]
     LivenessResponse:
       type: object

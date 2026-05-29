@@ -1,3 +1,16 @@
+jest.mock("../config/stellar", () => ({
+  horizonServer: {
+    loadAccount: jest.fn().mockResolvedValue({}),
+  },
+  sorobanRpcClient: {},
+}));
+
+jest.mock("../config/ipfs", () => ({
+  getPinataClient: jest.fn().mockReturnValue({
+    testAuthentication: jest.fn().mockResolvedValue(true),
+  }),
+}));
+
 import { HealthService } from "../services/health.service";
 import { AlertService } from "../services/alert.service";
 
@@ -64,7 +77,7 @@ describe("HealthService", () => {
             );
         });
 
-        it("should return unhealthy status when redis check fails", async () => {
+        it("should return degraded status and alert when redis check fails", async () => {
             mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
             mockRedis.ping.mockRejectedValue(new Error("Redis connection refused"));
             mockPrisma.processedLedger.findFirst.mockResolvedValue({
@@ -74,7 +87,7 @@ describe("HealthService", () => {
 
             const result = await healthService.performHealthCheck();
 
-            expect(result.status).toBe("unhealthy");
+            expect(result.status).toBe("degraded");
             expect(result.checks.redis.status).toBe("down");
             expect(mockAlerts.dispatch).toHaveBeenCalledWith(
                 "redis_connection_failure",
@@ -86,7 +99,6 @@ describe("HealthService", () => {
         it("should return unhealthy status when indexer lag exceeds threshold", async () => {
             mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
 
-            // Set processed ledger to 20 seconds ago (exceeds 15s threshold)
             const oldDate = new Date(Date.now() - 20 * 1000);
             mockPrisma.processedLedger.findFirst.mockResolvedValue({
                 ledgerSequence: 12345,
@@ -112,7 +124,6 @@ describe("HealthService", () => {
         });
 
         it("should return degraded status when response times are high", async () => {
-            // Mock slow database query
             mockPrisma.$queryRaw.mockImplementation(
                 () =>
                     new Promise((resolve) =>
@@ -146,7 +157,6 @@ describe("HealthService", () => {
         });
 
         it("should handle database query timeout", async () => {
-            // Simulate timeout by rejecting after delay
             mockPrisma.$queryRaw.mockImplementation(
                 () =>
                     new Promise((_, reject) =>
@@ -167,7 +177,6 @@ describe("HealthService", () => {
         it("should calculate indexer lag correctly", async () => {
             mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
 
-            // Set processed ledger to 5 seconds ago
             const recentDate = new Date(Date.now() - 5 * 1000);
             mockPrisma.processedLedger.findFirst.mockResolvedValue({
                 ledgerSequence: 12345,
