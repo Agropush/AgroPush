@@ -199,24 +199,24 @@ describe("DisputeService – status transitions", () => {
 
   // ── listMediatorDisputes ──────────────────────────────────────────────────
 
-  it("listMediatorDisputes returns only OPEN and UNDER_REVIEW disputes by default", async () => {
-    const openDispute = makeDispute(DisputeStatus.OPEN, 1, "T-A");
-    const reviewDispute = makeDispute(DisputeStatus.UNDER_REVIEW, 2, "T-B");
+  it("listMediatorDisputes returns all disputes by default when no status filter", async () => {
+    const disputes = [
+      makeDispute(DisputeStatus.OPEN, 1, "T-A"),
+      makeDispute(DisputeStatus.UNDER_REVIEW, 2, "T-B"),
+      makeDispute(DisputeStatus.RESOLVED, 3, "T-C"),
+      makeDispute(DisputeStatus.CLOSED, 4, "T-D"),
+    ];
 
-    (prisma.dispute.findMany as jest.Mock).mockResolvedValue([openDispute, reviewDispute]);
-    (prisma.dispute.count as jest.Mock).mockResolvedValue(2);
+    (prisma.dispute.findMany as jest.Mock).mockResolvedValue(disputes);
+    (prisma.dispute.count as jest.Mock).mockResolvedValue(4);
 
     const result = await service.listMediatorDisputes(MEDIATOR);
 
     expect(prisma.dispute.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          status: { in: [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW] },
-        },
-      }),
+      expect.objectContaining({ where: {} }),
     );
-    expect(result.items).toHaveLength(2);
-    expect(result.pagination.total).toBe(2);
+    expect(result.items).toHaveLength(4);
+    expect(result.pagination.total).toBe(4);
   });
 
   it("listMediatorDisputes filters by specific status when provided", async () => {

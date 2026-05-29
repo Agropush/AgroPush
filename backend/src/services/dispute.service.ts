@@ -52,9 +52,7 @@ export class DisputeService {
       throw new AppError(ErrorCode.AUTH_ERROR, "Unauthorized: Not a mediator", 403);
     }
 
-    const where = status
-      ? { status }
-      : { status: { in: [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW] as DisputeStatus[] } };
+    const where = status ? { status } : {};
 
     const [disputes, total] = await Promise.all([
       this.prisma.dispute.findMany({
