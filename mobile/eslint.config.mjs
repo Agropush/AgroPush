@@ -27,6 +27,9 @@ export default [
         exports: 'readonly',
         module: 'readonly',
         require: 'readonly',
+        FormData: 'readonly',
+        Blob: 'readonly',
+        fetch: 'readonly',
       },
     },
     plugins: {
