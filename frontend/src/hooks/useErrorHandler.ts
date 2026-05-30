@@ -54,7 +54,7 @@ export function useErrorHandler() {
 
   const handleAuthError = useCallback(
     (error: unknown) => {
-      if (isAuthError(error)) {
+      if (isAuthError(error as Error)) {
         handleError(error, {
           customMessage: "Your session has expired. Please log in again.",
         });
@@ -67,7 +67,7 @@ export function useErrorHandler() {
 
   const handleNetworkError = useCallback(
     (error: unknown) => {
-      if (isNetworkError(error)) {
+      if (isNetworkError(error as Error)) {
         handleError(error, {
           customMessage: "Network connection failed. Please check your internet connection.",
         });
@@ -80,7 +80,7 @@ export function useErrorHandler() {
 
   const handleRetryableError = useCallback(
     (error: unknown, retryFn?: () => void) => {
-      if (isRetryableError(error)) {
+      if (isRetryableError(error as Error)) {
         handleError(error, {
           customMessage: retryFn
             ? "Temporary error. Retrying..."
