@@ -15,8 +15,11 @@ import { createAuditTrailRouter } from "./routes/auditTrail.routes";
 import { createGoalsRouter } from "./routes/goals.routes";
 import { createHealthRouter } from "./routes/health.routes";
 import { disputeRoutes } from "./routes/dispute.routes";
+import { disputeCategoryRoutes } from "./routes/disputeCategory.routes";
+import { createTreasuryRouter } from "./routes/treasury.routes";
 import userRoutes from "./routes/user.routes";
 import reputationRoutes from "./routes/reputation.routes";
+import { env } from "./config/env";
 
 /** Parse the CORS_ORIGINS env var into a usable allowlist.
  *  Value should be a comma-separated list of allowed origins, e.g.:
@@ -24,10 +27,10 @@ import reputationRoutes from "./routes/reputation.routes";
  *  Leave empty in development to allow all origins.
  */
 function buildCorsOptions(): cors.CorsOptions {
-  const raw = process.env.CORS_ORIGINS ?? '';
+  const raw = process.env.CORS_ORIGINS ?? env.CORS_ORIGINS ?? '';
   const allowlist = raw
     .split(',')
-    .map((o) => o.trim())
+    .map((o: string) => o.trim())
     .filter(Boolean);
 
   if (allowlist.length === 0) {
@@ -48,6 +51,10 @@ function buildCorsOptions(): cors.CorsOptions {
 
 export function createApp(): express.Application {
   const app = express();
+
+  if (env.TRUST_PROXY) {
+    app.set('trust proxy', 1);
+  }
 
   // Security headers
   app.use(
@@ -114,6 +121,12 @@ export function createApp(): express.Application {
   // Disputes: GET /disputes
   app.use("/disputes", disputeRoutes);
 
+  // Dispute categories: CRUD /dispute-categories
+  app.use("/dispute-categories", disputeCategoryRoutes);
+
+  // Treasury management
+  app.use("/treasury", createTreasuryRouter());
+
   // Error handler is registered last so it catches errors from all routes,
   // including any routes added to the app after createApp() returns.
   // We achieve this by re-registering it whenever a new route/middleware is added.
@@ -152,5 +165,4 @@ export function createApp(): express.Application {
 
   return app;
 }
-
 

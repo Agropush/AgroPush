@@ -18,6 +18,8 @@ export type {
   PathPaymentQuote,
   ReputationEvent,
   ReputationResponse,
+  SubmitManifestRequest,
+  SubmitManifestResponse,
   TradeHistoryEvent,
   TradeHistoryResponse,
   TradeListResponse,
