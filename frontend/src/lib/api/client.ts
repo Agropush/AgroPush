@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from "./env";
 import { trackApiFailure } from "@/lib/analytics";
-import { parseBackendError, BackendErrorResponse } from "./errorHandler";
+import { parseBackendError, BackendErrorResponse } from "../errorHandler";
 
 export type FetchOptions = RequestInit & {
   token?: string | null;
