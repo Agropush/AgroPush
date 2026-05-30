@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { tradesApi } from "@/lib/api/trades";
 import type { TradeResponse } from "@/lib/api/types";
 
@@ -24,8 +24,6 @@ export function useTradeDetails(
     error: null,
   });
 
-  const fetchedRef = useRef(false);
-
   const fetchTrade = useCallback(async () => {
     if (!token) {
       setState({ trade: null, loading: false, error: null });
@@ -45,10 +43,7 @@ export function useTradeDetails(
   }, [token, id]);
 
   useEffect(() => {
-    if (!fetchedRef.current) {
-      fetchedRef.current = true;
-      void fetchTrade();
-    }
+    void fetchTrade();
   }, [fetchTrade]);
 
   return { ...state, refetch: fetchTrade };
