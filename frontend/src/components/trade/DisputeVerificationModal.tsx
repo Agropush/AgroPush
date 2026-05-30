@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   AlertTriangle,
@@ -48,7 +48,7 @@ export function DisputeVerificationModal({
   const [ipfsHash, setIpfsHash] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const submittingRef = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -78,8 +78,8 @@ export function DisputeVerificationModal({
   }, [isOpen]);
 
   const signAndSubmit = async (xdr: string, actionLabel: string) => {
-    if (submittingRef.current) return;
-    submittingRef.current = true;
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setStep("signing");
     setErrorMsg(null);
 
@@ -119,7 +119,7 @@ export function DisputeVerificationModal({
       setErrorMsg(err instanceof Error ? err.message : String(err));
       setStep("error");
     } finally {
-      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -260,7 +260,7 @@ export function DisputeVerificationModal({
                     </button>
                     <button
                       onClick={handleConfirmAccept}
-                      disabled={submittingRef.current}
+                      disabled={isSubmitting}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold bg-gold text-text-inverse hover:bg-gold-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       Sign &amp; Release Funds
@@ -309,7 +309,7 @@ export function DisputeVerificationModal({
                     </button>
                     <button
                       onClick={handleConfirmDispute}
-                      disabled={submittingRef.current}
+                      disabled={isSubmitting}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold bg-status-danger text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
                     >
                       Sign &amp; Raise Dispute

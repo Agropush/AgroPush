@@ -1,5 +1,5 @@
 declare module 'lucide-react' {
-  import { FC, SVGProps, ForwardRefExoticComponent, RefAttributes } from 'react';
+  import { SVGProps, ForwardRefExoticComponent, RefAttributes } from 'react';
 
   export interface LucideProps extends Partial<SVGProps<SVGSVGElement>> {
     size?: number;

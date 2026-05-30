@@ -103,9 +103,6 @@ export function useRetry<T>(
         const shouldRetry = !isLastAttempt && isRetryable(error as Error);
 
         if (!shouldRetry) {
-          const errorMessage = error instanceof Error
-            ? error.message
-            : "Request failed";
           setState({
             data: null,
             isLoading: false,
