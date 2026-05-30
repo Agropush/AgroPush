@@ -9,7 +9,7 @@ export type FetchOptions = RequestInit & {
 export class ApiError extends Error {
   status: number;
   data: unknown;
-  backendError?: BackendErrorResponse;
+  backendError?: BackendErrorResponse | null;
 
   constructor(status: number, message: string, data?: unknown) {
     super(message);
