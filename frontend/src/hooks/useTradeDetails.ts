@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { tradesApi } from "@/lib/api/trades";
 import type { TradeResponse } from "@/lib/api/types";
 
@@ -43,7 +43,10 @@ export function useTradeDetails(
   }, [token, id]);
 
   useEffect(() => {
-    void fetchTrade();
+    const timeout = setTimeout(() => {
+      void fetchTrade();
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [fetchTrade]);
 
   return { ...state, refetch: fetchTrade };
