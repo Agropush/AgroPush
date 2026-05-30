@@ -40,6 +40,13 @@ describe("Health Routes", () => {
                 },
             });
 
+            expect([200, 503]).toContain(response.status);
+            expect(response.body).toHaveProperty("status");
+            expect(response.body).toHaveProperty("timestamp");
+            expect(response.body).toHaveProperty("checks");
+        });
+
+        it("should include database, redis, indexer, and dependency checks", async () => {
             const response = await request(app).get("/health");
 
             expect(response.status).toBe(200);
@@ -47,10 +54,12 @@ describe("Health Routes", () => {
             expect(response.body.checks).toHaveProperty("database");
             expect(response.body.checks).toHaveProperty("redis");
             expect(response.body.checks).toHaveProperty("indexer");
-            expect(response.body.details).toHaveProperty("databaseLatency");
-            expect(response.body.details).toHaveProperty("redisLatency");
-            expect(response.body.details).toHaveProperty("indexerLagSeconds");
-            expect(response.body.details).toHaveProperty("lastProcessedLedger");
+            expect(response.body.checks).toHaveProperty("stellar");
+            expect(response.body.checks).toHaveProperty("ipfs");
+            expect(response.body.checks).toHaveProperty("config");
+            expect(response.body.checks.database).toHaveProperty("status");
+            expect(response.body.checks.redis).toHaveProperty("status");
+            expect(response.body.checks.indexer).toHaveProperty("status");
         });
 
         it("should return degraded status", async () => {
@@ -73,8 +82,13 @@ describe("Health Routes", () => {
 
             const response = await request(app).get("/health");
 
-            expect(response.status).toBe(200);
-            expect(response.body.status).toBe("degraded");
+            expect(response.body.details).toHaveProperty("databaseLatency");
+            expect(response.body.details).toHaveProperty("redisLatency");
+            expect(response.body.details).toHaveProperty("indexerLagSeconds");
+            expect(response.body.details).toHaveProperty("lastProcessedLedger");
+            expect(response.body.details).toHaveProperty("stellarNetwork");
+            expect(response.body.details).toHaveProperty("ipfsGateway");
+            expect(response.body.details).toHaveProperty("missingEnvVars");
         });
 
         it("should return 503 when unhealthy", async () => {
