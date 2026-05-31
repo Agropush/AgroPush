@@ -17,7 +17,7 @@ const VALID_PREDECESSORS: Partial<Record<EventType, TradeStatus[]>> = {
   [EventType.TradeFunded]: [TradeStatus.CREATED],
   [EventType.DeliveryConfirmed]: [TradeStatus.FUNDED],
   [EventType.FundsReleased]: [TradeStatus.DELIVERED],
-  [EventType.DisputeInitiated]: [TradeStatus.FUNDED],
+  [EventType.DisputeInitiated]: [TradeStatus.FUNDED, TradeStatus.DELIVERED],
   [EventType.DisputeResolved]: [TradeStatus.DISPUTED],
 };
 
