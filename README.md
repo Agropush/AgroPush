@@ -18,7 +18,7 @@ To provide a programmable safety net for regional commodity trading. Amana ensur
 
 - **Smart Escrow:** Secure funds holding using cNGN/stablecoins on the Stellar network.
 - **Dynamic Loss Sharing:** Negotiable risk-sharing ratios (e.g., 50/50, 70/30) hardcoded into every trade to handle transit accidents or theft.
-- **Proof-of-Delivery (PoD):** A mandatory video-based verification protocol involving the buyer and the driver to confirm the state of goods.
+- **Proof-of-Delivery (PoD):** An optional video-based verification protocol involving the buyer and the driver to confirm the state of goods. Video evidence can be submitted and stored on IPFS for dispute resolution.
 - **Volatility Protection:** Utilizes Stellar Path Payments to allow users to pay in local currency (NGN) while locking value in cNGN.
 - **Automated Settlement:** A flat 1% platform fee is automatically deducted upon successful trade completion.
 
