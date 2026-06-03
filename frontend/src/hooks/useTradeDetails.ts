@@ -43,7 +43,10 @@ export function useTradeDetails(
   }, [token, id]);
 
   useEffect(() => {
-    void fetchTrade();
+    const timeout = setTimeout(() => {
+      void fetchTrade();
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [fetchTrade]);
 
   return { ...state, refetch: fetchTrade };

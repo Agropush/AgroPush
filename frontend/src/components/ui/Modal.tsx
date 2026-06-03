@@ -133,21 +133,13 @@ export function ModalHeader({
   );
 }
 
-export function ModalTitle(
-  props: React.ComponentPropsWithoutRef<typeof Dialog.Title>,
-) {
+export function ModalTitle(props: React.ComponentPropsWithoutRef<typeof Dialog.Title>) {
   return (
     <Dialog.Title
       className={clsx("text-xl font-semibold text-primary", props.className)}
       {...props}
     />
   );
-    <div className={clsx("border-b border-border-default dark:border-border-default px-6 py-5 pr-14", className)} {...props} />
-  );
-}
-
-export function ModalTitle(props: React.ComponentPropsWithoutRef<typeof Dialog.Title>) {
-  return <Dialog.Title className={clsx("text-xl font-semibold text-primary dark:text-text-primary", props.className)} {...props} />;
 }
 
 export function ModalDescription(

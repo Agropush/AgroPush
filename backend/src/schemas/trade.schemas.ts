@@ -17,10 +17,9 @@ export const createTradeSchema = z.object({
   buyerLossBps: z.number().int().min(0, "buyerLossBps must be >= 0").max(10000, "buyerLossBps must be <= 10000").optional(),
   sellerLossBps: z.number().int().min(0, "sellerLossBps must be >= 0").max(10000, "sellerLossBps must be <= 10000").optional(),
   description: z.string().optional(),
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-}).superRefine((data: any, ctx: any) => {
-  const buyer = data.buyerLossBps ?? 5000;
-  const seller = data.sellerLossBps ?? 5000;
+}).superRefine((data: Record<string, unknown>, ctx: any) => {
+  const buyer = (data.buyerLossBps as number) ?? 5000;
+  const seller = (data.sellerLossBps as number) ?? 5000;
   if (buyer + seller !== 10000) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "sum of buyerLossBps and sellerLossBps must equal 10000", path: ["buyerLossBps"] });
   }
@@ -48,7 +47,6 @@ export const initiateDisputeSchema = z
       .optional(),
     categoryId: z.number().int().positive("categoryId must be a positive integer").optional(),
   })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   .superRefine((data: { category?: string; categoryId?: number }, ctx: any) => {
     if (!data.category && data.categoryId === undefined) {
       ctx.addIssue({

@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from "./env";
 import { trackApiFailure } from "@/lib/analytics";
-import { parseBackendError, BackendErrorResponse } from "./errorHandler";
+import { parseBackendError, BackendErrorResponse } from "../errorHandler";
 
 export type FetchOptions = RequestInit & {
   token?: string | null;
@@ -9,7 +9,7 @@ export type FetchOptions = RequestInit & {
 export class ApiError extends Error {
   status: number;
   data: unknown;
-  backendError?: BackendErrorResponse;
+  backendError?: BackendErrorResponse | null;
 
   constructor(status: number, message: string, data?: unknown) {
     super(message);

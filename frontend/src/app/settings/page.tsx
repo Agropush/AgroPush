@@ -393,6 +393,7 @@ export default function SettingsPage() {
             />
             <Divider />
             <SelectField
+              label="Preferred currency"
               description="Fiat currency used for value estimates."
               value={prefs.currency}
               onChange={(v) => setPref("currency", v as AppPrefs["currency"])}
