@@ -119,7 +119,7 @@ export default function TradesPage() {
     }
 
     fetchTrades();
-  }, [token, isAuthenticated, activeFilter, page]);
+  }, [token, isAuthenticated, activeFilter, page, trackApiFailure, trackFunnelStep]);
 
   function handleFilter(value: TradeStatus) {
     setActiveFilter(value);
