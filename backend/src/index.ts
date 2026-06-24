@@ -12,6 +12,9 @@ import { appLogger } from "./middleware/logger";
 import { initializeTracing } from "./config/tracing";
 
 void env;
+import { HealthService } from "./services/health.service";
+
+env; // Validate early
 
 // Initialize distributed tracing before any other imports
 initializeTracing();
@@ -72,16 +75,41 @@ if (env.NODE_ENV !== "production" && openapiSpec) {
 }
 
 const eventListenerService = new EventListenerService(prisma);
+const healthService = new HealthService();
 
-app.listen(port, async () => {
-  appLogger.info({ port }, "Amana backend listening");
+async function bootstrap() {
+  const isTest = (process.env.NODE_ENV ?? env.NODE_ENV) === "test";
 
-  try {
-    await eventListenerService.start();
-    appLogger.info("EventListenerService started successfully");
-  } catch (error) {
-    appLogger.error({ error }, "Failed to start EventListenerService");
+  if (!isTest) {
+    appLogger.info("Performing startup readiness check...");
+    try {
+      const startupCheck = await healthService.performStartupCheck();
+      if (startupCheck.status !== "ready") {
+        appLogger.fatal({ checks: startupCheck.checks }, "Critical startup dependencies are not ready. Exiting.");
+        process.exit(1);
+      }
+      appLogger.info("Startup readiness check passed.");
+    } catch (error) {
+      appLogger.fatal({ error }, "Failed to perform startup check. Exiting.");
+      process.exit(1);
+    }
   }
+
+  app.listen(port, async () => {
+    appLogger.info({ port }, "Amana backend listening");
+
+    try {
+      await eventListenerService.start();
+      appLogger.info("EventListenerService started successfully");
+    } catch (error) {
+      appLogger.error({ error }, "Failed to start EventListenerService");
+    }
+  });
+}
+
+bootstrap().catch((error) => {
+  appLogger.fatal({ error }, "Fatal bootstrap error");
+  process.exit(1);
 });
 
 const shutdown = async (signal: string) => {

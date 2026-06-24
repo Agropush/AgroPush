@@ -60,6 +60,9 @@ model User {
   initiatedDisputes Dispute[]      @relation("initiator")
   vaults          Vault[]
   goals           Goal[]
+  tradeTemplates  TradeTemplate[]
+  watchlist       UserWatchlist[]
+  refreshTokens   RefreshToken[]
 
   @@index([walletAddress])
 }
@@ -96,11 +99,47 @@ model Trade {
   dispute       Dispute?
   manifest      DeliveryManifest?
   evidence      TradeEvidence[]
+  watchlistEntries UserWatchlist[]
 
   @@index([tradeId])
   @@index([buyerAddress])
   @@index([sellerAddress])
   @@index([status])
+}
+
+/// TradeTemplate stores a user's reusable trade terms. The buyer is always the
+/// authenticated user at creation time, so it is intentionally not persisted.
+model TradeTemplate {
+  id              Int      @id @default(autoincrement())
+  userAddress     String   @db.VarChar(255)
+  name            String   @db.VarChar(100)
+  sellerAddress   String   @db.VarChar(255)
+  amountUsdc      String   @db.VarChar(100)
+  buyerLossBps    Int      @default(5000)
+  sellerLossBps   Int      @default(5000)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userAddress], references: [walletAddress], onDelete: Cascade)
+
+  @@unique([userAddress, name])
+  @@index([userAddress, createdAt])
+}
+
+/// UserWatchlist is a user-scoped bookmark. The composite unique constraint
+/// makes adding the same trade idempotent and prevents duplicate favorites.
+model UserWatchlist {
+  id          Int      @id @default(autoincrement())
+  userAddress String   @db.VarChar(255)
+  tradeId     String   @db.VarChar(255)
+  createdAt   DateTime @default(now())
+
+  user  User  @relation(fields: [userAddress], references: [walletAddress], onDelete: Cascade)
+  trade Trade @relation(fields: [tradeId], references: [tradeId], onDelete: Cascade)
+
+  @@unique([userAddress, tradeId])
+  @@index([userAddress, createdAt])
+  @@index([tradeId])
 }
 
 /// DisputeCategory model for classifying disputes
@@ -280,4 +319,18 @@ model Goal {
   @@index([vaultId])
   @@index([userId])
   @@index([status])
+}
+
+/// RefreshToken model for tracking active sessions and preventing reuse
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique @db.VarChar(255)
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
 }
