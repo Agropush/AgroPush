@@ -327,6 +327,7 @@ model Goal {
 model RefreshToken {
   id        Int      @id @default(autoincrement())
   tokenHash String   @unique @db.VarChar(255)
+  jti       String   @unique @db.VarChar(255)
   userId    Int
   expiresAt DateTime
   createdAt DateTime @default(now())
@@ -335,6 +336,22 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tokenHash])
+  @@index([jti])
+}
+
+model UserWallet {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  walletAddress String   @db.VarChar(255)
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, walletAddress])
+  @@index([userId])
+  @@index([walletAddress])
 }
 
 /// Webhook model representing a registered webhook endpoint owned by a user
