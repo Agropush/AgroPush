@@ -9,7 +9,8 @@ if (typeof URL.revokeObjectURL === 'undefined') {
 }
 
 if (typeof globalThis.TextEncoder === 'undefined') {
-  const { TextEncoder, TextDecoder } = require('util');
-  globalThis.TextEncoder = TextEncoder;
-  globalThis.TextDecoder = TextDecoder;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- dynamic polyfill for jsdom
+  const util = require('util');
+  globalThis.TextEncoder = util.TextEncoder;
+  globalThis.TextDecoder = util.TextDecoder;
 }
