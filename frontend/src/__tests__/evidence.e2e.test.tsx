@@ -14,6 +14,23 @@ import userEvent from "@testing-library/user-event";
 import { VideoUploadCard } from "@/components/ui/VideoUploadCard";
 import { api } from "@/lib/api";
 
+// Mock the BentoCard component
+jest.mock("@/components/ui/BentoCard", () => ({
+  BentoCard: ({ children, title }: { children: React.ReactNode; title?: string; icon?: React.ReactNode; glowVariant?: string; className?: string }) => (
+    <div data-testid="bento-card">
+      {title && <h3>{title}</h3>}
+      {children}
+    </div>
+  ),
+}));
+
+// Mock the Icon component
+jest.mock("@/components/ui/Icon", () => ({
+  Icon: ({ name, size, className, ...props }: { name: string; size?: string; className?: string; [key: string]: unknown }) => (
+    <svg data-testid={`icon-${name}`} data-size={size} className={className} {...props} />
+  ),
+}));
+
 // Mock the API
 jest.mock("@/lib/api", () => ({
   api: {
