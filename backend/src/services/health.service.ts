@@ -5,6 +5,7 @@ import { env } from "../config/env";
 import { horizonServer } from "../config/stellar";
 import { getPinataClient } from "../config/ipfs";
 import { AlertService, alertService as defaultAlertService } from "./alert.service";
+import { getCircuitBreakerStates } from "../lib/circuitBreaker";
 
 interface HealthIndicatorResult {
   status: "up" | "down";
@@ -32,10 +33,19 @@ interface HealthCheckResponse {
     stellarNetwork: string;
     ipfsGateway: string;
     missingEnvVars: string[];
+    circuitBreakers: Array<{ name: string; state: string }>;
   };
 }
 
-type HealthDatabase = any;
+interface HealthDatabase {
+  $queryRaw(strings: TemplateStringsArray, ...values: unknown[]): Promise<unknown[]>;
+  processedLedger: {
+    findFirst(args?: {
+      orderBy?: { ledgerSequence?: "asc" | "desc" };
+      take?: number;
+    }): Promise<{ ledgerSequence: number; processedAt: Date } | null>;
+  };
+}
 interface HealthRedis {
   ping(): Promise<string>;
 }
@@ -299,6 +309,16 @@ export class HealthService {
   }
 
   /**
+   * Check circuit breaker states for external service calls.
+   */
+  private checkCircuitBreakers(): Array<{ name: string; state: string }> {
+    return getCircuitBreakerStates().map((cb) => ({
+      name: cb.name,
+      state: cb.state,
+    }));
+  }
+
+  /**
    * Perform comprehensive health check
    * Returns detailed status for uptime integrations (Datadog, UptimeRobot, etc.)
    */
@@ -364,6 +384,8 @@ export class HealthService {
             .split(", ")
         : [];
 
+    const circuitBreakers = this.checkCircuitBreakers();
+
     return {
       status,
       timestamp,
@@ -384,7 +406,38 @@ export class HealthService {
         stellarNetwork: env.STELLAR_NETWORK,
         ipfsGateway: env.IPFS_GATEWAY_URL,
         missingEnvVars,
+        circuitBreakers,
       },
     };
+  }
+
+  /**
+   * Perform startup readiness check
+   * Checks critical dependencies needed for the application to start
+   */
+  async performStartupCheck(): Promise<{
+    status: "ready" | "not_ready";
+    timestamp: string;
+    checks: Record<string, HealthIndicatorResult>;
+  }> {
+    const timestamp = new Date().toISOString();
+
+    const [databaseCheck, redisCheck, configCheck] = await Promise.all([
+      this.checkDatabase(),
+      this.checkRedis(),
+      this.checkConfig(),
+    ]);
+
+    const checks = {
+      database: databaseCheck,
+      redis: redisCheck,
+      config: configCheck,
+    };
+
+    const status = databaseCheck.status === "up" && redisCheck.status === "up" && configCheck.status === "up"
+      ? "ready"
+      : "not_ready";
+
+    return { status, timestamp, checks };
   }
 }

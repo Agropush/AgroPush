@@ -7,6 +7,10 @@ import {
 import { EventType, ParsedEvent } from "../types/events";
 import { dispatchEvent } from "./eventHandlers";
 import { appLogger } from "../middleware/logger";
+import {
+  CircuitBreaker,
+  CircuitBreakerOpenError,
+} from "../lib/circuitBreaker";
 
 type OutboxStatus = "PENDING" | "RETRYING" | "PROCESSED" | "DEAD_LETTER";
 
@@ -27,7 +31,7 @@ export async function isAlreadyProcessed(
   prisma: PrismaClient,
   key: { ledgerSequence: number; contractId: string; eventId: string }
 ): Promise<boolean> {
-  const existing = await (prisma as any).processedEvent.findUnique({
+  const existing = await prisma.processedEvent.findUnique({
     where: {
       ledgerSequence_contractId_eventId: key,
     },
@@ -39,7 +43,10 @@ export async function isAlreadyProcessed(
  * Returns true if the error is a Prisma unique-constraint violation (P2002).
  */
 export function isPrismaUniqueConstraintError(err: unknown): boolean {
-  return (err as any)?.code === "P2002";
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    err.code === "P2002"
+  );
 }
 
 /**
@@ -58,7 +65,7 @@ export async function processEventAtomically(
   try {
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await handler(tx, event);
-      await (tx as any).processedEvent.create({
+      await tx.processedEvent.create({
         data: {
           ledgerSequence: event.ledgerSequence,
           contractId: event.contractId,
@@ -93,12 +100,18 @@ export class EventListenerService {
   private running: boolean = false;
   private timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   private currentBackoffMs: number;
+  private stellarCircuit: CircuitBreaker;
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
     this.config = getEventListenerConfig();
     this.server = new StellarSdk.rpc.Server(this.config.rpcUrl);
     this.currentBackoffMs = this.config.backoffInitialMs;
+    this.stellarCircuit = new CircuitBreaker("stellar-rpc", {
+      failureThreshold: 3,
+      successThreshold: 2,
+      cooldownMs: 30_000,
+    });
   }
 
   /** Boot the polling loop. Loads recent processed ledgers from DB into memory. */
@@ -107,7 +120,7 @@ export class EventListenerService {
     this.running = true;
 
     // Hydrate in-memory set from DB on startup
-    const recentEvents = await (this.prisma as any).processedEvent.findMany({
+    const recentEvents = await this.prisma.processedEvent.findMany({
       orderBy: { ledgerSequence: "desc" },
       take: this.config.processedLedgersCacheSize,
     });
@@ -152,16 +165,18 @@ export class EventListenerService {
     try {
       const startLedger = this.lastLedger > 0 ? this.lastLedger + 1 : undefined;
 
-      const response = await this.server.getEvents({
-        startLedger,
-        filters: [
-          {
-            type: "contract",
-            contractIds: [this.config.contractId],
-          },
-        ],
-        limit: 100,
-      } as StellarSdk.rpc.Server.GetEventsRequest);
+      const response = await this.stellarCircuit.call(() =>
+        this.server.getEvents({
+          startLedger,
+          filters: [
+            {
+              type: "contract",
+              contractIds: [this.config.contractId],
+            },
+          ],
+          limit: 100,
+        } as StellarSdk.rpc.Server.GetEventsRequest),
+      );
 
       if (response.events && response.events.length > 0) {
         for (const rawEvent of response.events) {
@@ -172,8 +187,13 @@ export class EventListenerService {
       this.resetBackoff();
       this.scheduleNextPoll(this.config.pollIntervalMs);
     } catch (error) {
-      appLogger.error({ error }, "[EventListener] Poll failed");
-      this.handleBackoff();
+      if (error instanceof CircuitBreakerOpenError) {
+        appLogger.warn({}, "[EventListener] Circuit breaker open — skipping poll");
+        this.scheduleNextPoll(this.stellarCircuit.cooldownMsValue);
+      } else {
+        appLogger.error({ error }, "[EventListener] Poll failed");
+        this.handleBackoff();
+      }
     }
   }
 
@@ -244,8 +264,13 @@ export class EventListenerService {
   }
 
   private supportsOutboxPersistence(): boolean {
-    const outbox = (this.prisma as any).chainEventOutbox;
-    return Boolean(outbox && typeof outbox.findUnique === "function");
+    // If the Prisma client was generated with a `chainEventOutbox` model,
+    // it will be available on the client. Use feature-detection rather than
+    // unsafe casts.
+    const outbox = (this.prisma as unknown as Record<string, unknown>)[
+      "chainEventOutbox"
+    ];
+    return Boolean(outbox && typeof (outbox as any).findUnique === "function");
   }
 
   private async ensureOutboxRecord(event: ParsedEvent): Promise<OutboxRecord> {
@@ -255,10 +280,20 @@ export class EventListenerService {
       eventId: event.eventId,
     };
 
-    const existing = await (this.prisma as any).chainEventOutbox.findUnique({
-      where: {
-        ledgerSequence_contractId_eventId: key,
+    // Atomic upsert: concurrent poll cycles racing on the same event all get
+    // back the single canonical record without a non-atomic check-then-create.
+    const record = await this.prisma.chainEventOutbox.upsert({
+      where: { ledgerSequence_contractId_eventId: key },
+      create: {
+        ledgerSequence: event.ledgerSequence,
+        contractId: event.contractId,
+        eventId: event.eventId,
+        eventType: event.eventType,
+        tradeId: event.tradeId,
+        payload: event.data as Prisma.JsonObject,
+        status: "PENDING",
       },
+      update: {},
       select: {
         id: true,
         status: true,
@@ -266,50 +301,7 @@ export class EventListenerService {
         nextAttemptAt: true,
       },
     });
-
-    if (existing) {
-      return existing as OutboxRecord;
-    }
-
-    try {
-      const created = await (this.prisma as any).chainEventOutbox.create({
-        data: {
-          ledgerSequence: event.ledgerSequence,
-          contractId: event.contractId,
-          eventId: event.eventId,
-          eventType: event.eventType,
-          tradeId: event.tradeId,
-          payload: event.data,
-          status: "PENDING",
-        },
-        select: {
-          id: true,
-          status: true,
-          attempts: true,
-          nextAttemptAt: true,
-        },
-      });
-      return created as OutboxRecord;
-    } catch (error) {
-      if (!isPrismaUniqueConstraintError(error)) {
-        throw error;
-      }
-      const concurrent = await (this.prisma as any).chainEventOutbox.findUnique({
-        where: {
-          ledgerSequence_contractId_eventId: key,
-        },
-        select: {
-          id: true,
-          status: true,
-          attempts: true,
-          nextAttemptAt: true,
-        },
-      });
-      if (!concurrent) {
-        throw error;
-      }
-      return concurrent as OutboxRecord;
-    }
+    return record as OutboxRecord;
   }
 
   private isOutboxReadyForAttempt(outbox: OutboxRecord): boolean {
@@ -330,15 +322,25 @@ export class EventListenerService {
   private async processOutboxEventAtomically(outboxId: number, event: ParsedEvent): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        // Re-read status inside the transaction: if a concurrent worker already
+        // committed PROCESSED, skip dispatch to prevent duplicate event handling.
+        const current = await tx.chainEventOutbox.findUnique({
+          where: { id: outboxId },
+          select: { status: true },
+        });
+        if (current?.status === "PROCESSED") {
+          return;
+        }
+
         await dispatchEvent(tx, event);
-        await (tx as any).processedEvent.create({
+        await tx.processedEvent.create({
           data: {
             ledgerSequence: event.ledgerSequence,
             contractId: event.contractId,
             eventId: event.eventId,
           },
         });
-        await (tx as any).chainEventOutbox.update({
+        await tx.chainEventOutbox.update({
           where: { id: outboxId },
           data: {
             status: "PROCESSED",
@@ -354,7 +356,7 @@ export class EventListenerService {
       if (!isPrismaUniqueConstraintError(error)) {
         throw error;
       }
-      await (this.prisma as any).chainEventOutbox.update({
+      await this.prisma.chainEventOutbox.update({
         where: { id: outboxId },
         data: {
           status: "PROCESSED",
@@ -380,7 +382,7 @@ export class EventListenerService {
     const now = Date.now();
     const message = error instanceof Error ? error.message : String(error);
 
-    await (this.prisma as any).chainEventOutbox.update({
+    await this.prisma.chainEventOutbox.update({
       where: { id: outbox.id },
       data: {
         attempts: nextAttempts,
@@ -518,13 +520,23 @@ export class EventListenerService {
   }
 
 
+  /** Parse ledger sequence from a processed-event cache key (`ledger:contract:eventId`). */
+  private ledgerFromProcessedEventKey(key: string): number {
+    const segment = key.split(":")[0];
+    if (segment === undefined || segment === "") {
+      return -1;
+    }
+    const ledger = parseInt(segment, 10);
+    return Number.isFinite(ledger) ? ledger : -1;
+  }
+
   /** Evict oldest events from in-memory set when it exceeds the cache limit. */
   private evictOldEvents(): void {
     if (this.processedEvents.size <= this.config.processedLedgersCacheSize) return;
 
     const sorted = Array.from(this.processedEvents).sort((a, b) => {
-      const ledgerA = parseInt(a.split(":")[0], 10);
-      const ledgerB = parseInt(b.split(":")[0], 10);
+      const ledgerA = this.ledgerFromProcessedEventKey(a);
+      const ledgerB = this.ledgerFromProcessedEventKey(b);
       return ledgerA - ledgerB;
     });
     const toRemove = sorted.length - this.config.processedLedgersCacheSize;

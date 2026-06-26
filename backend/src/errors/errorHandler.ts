@@ -1,63 +1,84 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError, ErrorCode, StructuredErrorPayload } from "./errorCodes";
+import { ErrorCode, StructuredErrorPayload, isAppError } from "./errorCodes";
+import { z } from "zod";
 import { env } from "../config/env";
 import { appLogger } from "../middleware/logger";
 
+function isZodError(err: unknown): err is { errors: unknown[] } {
+  return err instanceof z.ZodError;
+}
+
+function handleError(err: unknown): StructuredErrorPayload {
+  if (isAppError(err)) {
+    return {
+      code: err.code,
+      message: err.message,
+      details: err.details,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  if (isZodError(err)) {
+    return {
+      code: ErrorCode.VALIDATION_ERROR,
+      message: "Validation failed",
+      details: { errors: err.errors },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  const errForLogging = err instanceof Error ? err : new Error(String(err));
+  return {
+    code: ErrorCode.INTERNAL_ERROR,
+    message: env.NODE_ENV === "production" ? "Internal server error" : errForLogging.message,
+    details: {},
+    timestamp: new Date().toISOString(),
+  };
+}
+
 export const errorHandler = (
-  err: any,
+  err: unknown,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
   const requestId = (req.headers["x-request-id"] as string) || undefined;
   const correlationId = (req.headers["x-correlation-id"] as string) || undefined;
   const path = req.path;
 
-  if (err instanceof AppError) {
+  const payload = handleError(err);
+  
+  // Add request context to payload
+  const fullPayload = {
+    ...payload,
+    path,
+    ...(requestId && { requestId }),
+    ...(correlationId && { correlationId }),
+  };
+
+  // Log appropriately
+  if (isAppError(err)) {
     appLogger.warn({
       code: err.code,
       message: err.message,
       requestId,
       details: err.details,
     }, "AppError handled");
-
-    const payload = err.toPayload(path, requestId, correlationId);
-    return res.status(err.statusCode).json(payload);
+    return res.status(err.statusCode).json(fullPayload);
   }
 
-  // Handle Zod validation errors
-  if (err.name === "ZodError") {
-    const payload: StructuredErrorPayload = {
-      code: ErrorCode.VALIDATION_ERROR,
-      message: "Validation failed",
-      details: { errors: err.errors },
-      timestamp: new Date().toISOString(),
-      path,
-      ...(requestId && { requestId }),
-      ...(correlationId && { correlationId }),
-    };
-    return res.status(400).json(payload);
+  if (isZodError(err)) {
+    return res.status(400).json(fullPayload);
   }
 
   // Default unhandled error
+  const errForLogging = err instanceof Error ? err : new Error(String(err));
   appLogger.error({
-    err,
+    err: errForLogging,
     requestId,
-    stack: err.stack,
+    stack: errForLogging.stack,
   }, "Unhandled error");
 
-  const message =
-    env.NODE_ENV === "production" ? "Internal server error" : err.message;
-
-  const payload: StructuredErrorPayload = {
-    code: ErrorCode.INTERNAL_ERROR,
-    message,
-    details: {},
-    timestamp: new Date().toISOString(),
-    path,
-    ...(requestId && { requestId }),
-    ...(correlationId && { correlationId }),
-  };
-
-  res.status(err.status || 500).json(payload);
+  const status = (errForLogging as { status?: number }).status ?? 500;
+  res.status(status).json(fullPayload);
 };

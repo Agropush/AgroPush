@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/useToast";
 import { api, ApiError, TradeResponse } from "@/lib/api";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
+import { NavButton } from "@/components/ui/Navigation";
 
 type TradeStatus = "all" | "active" | "pending" | "completed" | "disputed";
 
@@ -118,7 +119,7 @@ export default function TradesPage() {
     }
 
     fetchTrades();
-  }, [token, isAuthenticated, activeFilter, page]);
+  }, [token, isAuthenticated, activeFilter, page, trackApiFailure, trackFunnelStep]);
 
   function handleFilter(value: TradeStatus) {
     setActiveFilter(value);
@@ -189,16 +190,16 @@ export default function TradesPage() {
             const isActive = activeFilter === filter.value;
 
             return (
-              <button
+              <NavButton
                 key={filter.value}
                 type="button"
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => handleFilter(filter.value)}
-                className={`${NAV_ITEM_BASE} ${isActive ? NAV_ITEM_ACTIVE : NAV_ITEM_INACTIVE}`}
+                isActive={isActive}
               >
                 {filter.label}
-              </button>
+              </NavButton>
             );
           })}
         </div>

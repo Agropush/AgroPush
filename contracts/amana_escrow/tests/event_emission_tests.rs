@@ -37,7 +37,7 @@ fn setup(
         .register_stellar_asset_contract_v2(admin.clone())
         .address();
     token::StellarAssetClient::new(env, &usdc_id).mint(&buyer, &amount);
-    client.initialize(&admin, &usdc_id, &treasury, &fee_bps);
+    client.initialize(&admin, &usdc_id, &treasury, &fee_bps, &usdc_id);
     (contract_id, usdc_id, buyer, seller, treasury, mediator)
 }
 
@@ -103,9 +103,9 @@ fn test_event_trade_created_payload() {
     token::StellarAssetClient::new(&env, &usdc_id).mint(&buyer, &10_000);
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
-    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32);
+    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32, &None);
 
     assert_last_topic(&env, symbol_short!("TRDCRT").into_val(&env));
 
@@ -136,9 +136,9 @@ fn test_event_trade_funded_payload() {
     token::StellarAssetClient::new(&env, &usdc_id).mint(&buyer, &10_000);
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
-    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32);
+    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32, &None);
     client.deposit(&trade_id);
 
     assert_last_topic(&env, symbol_short!("TRDFND").into_val(&env));
@@ -170,12 +170,12 @@ fn test_event_funds_released_payload_integrity() {
     token::StellarAssetClient::new(&env, &usdc_id).mint(&buyer, &10_000);
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
-    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32);
+    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32, &None);
     client.deposit(&trade_id);
     client.confirm_delivery(&trade_id);
-    client.release_funds(&trade_id);
+    client.release_funds(&trade_id, &buyer);
 
     assert_last_topic(&env, symbol_short!("RELSD").into_val(&env));
 
@@ -214,9 +214,9 @@ fn test_event_dispute_initiated_payload() {
     token::StellarAssetClient::new(&env, &usdc_id).mint(&buyer, &10_000);
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
-    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32);
+    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32, &None);
     client.deposit(&trade_id);
     let reason = String::from_str(&env, "QmTestDisputeReason");
     client.initiate_dispute(&trade_id, &buyer, &reason);
@@ -242,7 +242,7 @@ fn test_event_mediator_added_payload() {
     let usdc_id = env
         .register_stellar_asset_contract_v2(admin.clone())
         .address();
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
     client.add_mediator(&mediator);
 
@@ -267,7 +267,7 @@ fn test_event_mediator_removed_payload() {
     let usdc_id = env
         .register_stellar_asset_contract_v2(admin.clone())
         .address();
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
     client.add_mediator(&mediator);
 
     client.remove_mediator(&mediator);
@@ -294,12 +294,12 @@ fn test_full_lifecycle_event_sequence() {
     token::StellarAssetClient::new(&env, &usdc_id).mint(&buyer, &10_000);
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
     client.add_mediator(&mediator);
     assert_last_topic(&env, symbol_short!("MEDADD").into_val(&env));
 
-    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32);
+    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32, &None);
     assert_last_topic(&env, symbol_short!("TRDCRT").into_val(&env));
     let _ = trade_id;
 
@@ -312,7 +312,7 @@ fn test_full_lifecycle_event_sequence() {
     assert_last_topic(&env, symbol_short!("DELCNF").into_val(&env));
 
     // Release funds
-    client.release_funds(&trade_id);
+    client.release_funds(&trade_id, &buyer);
     assert_last_topic(&env, symbol_short!("RELSD").into_val(&env));
 }
 
@@ -332,9 +332,9 @@ fn test_dispute_lifecycle_event_sequence() {
     token::StellarAssetClient::new(&env, &usdc_id).mint(&buyer, &10_000);
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
-    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32);
+    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32, &None);
     client.deposit(&trade_id);
 
     client.initiate_dispute(&trade_id, &buyer, &String::from_str(&env, "QmDispute"));
@@ -372,9 +372,9 @@ fn test_event_video_proof_submitted_payload() {
     token::StellarAssetClient::new(&env, &usdc_id).mint(&buyer, &10_000);
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
-    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32);
+    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32, &None);
     client.deposit(&trade_id);
 
     client.submit_video_proof(&trade_id, &buyer, &String::from_str(&env, "QmVideoCID"));
@@ -401,9 +401,9 @@ fn test_event_manifest_submitted_payload() {
     token::StellarAssetClient::new(&env, &usdc_id).mint(&buyer, &10_000);
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
-    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32);
+    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32, &None);
     client.deposit(&trade_id);
 
     client.submit_manifest(
@@ -435,9 +435,9 @@ fn test_event_trade_cancelled_payload() {
     token::StellarAssetClient::new(&env, &usdc_id).mint(&buyer, &10_000);
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
-    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32);
+    let trade_id = client.create_trade(&buyer, &seller, &10_000_i128, &5000_u32, &5000_u32, &None);
     client.cancel_trade(&trade_id, &buyer);
 
     assert_last_topic(&env, symbol_short!("TRDCAN").into_val(&env));
@@ -462,11 +462,11 @@ fn test_no_event_on_invalid_create() {
     token::StellarAssetClient::new(&env, &usdc_id).mint(&buyer, &10_000);
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &usdc_id, &treasury, &100_u32);
+    client.initialize(&admin, &usdc_id, &treasury, &100_u32, &usdc_id);
 
     // Attempt a create_trade with 0 amount should fail
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        client.create_trade(&buyer, &seller, &0_i128, &5000_u32, &5000_u32);
+        client.create_trade(&buyer, &seller, &0_i128, &5000_u32, &5000_u32, &None);
     }));
     assert!(result.is_err(), "create_trade with 0 amount must panic");
 }

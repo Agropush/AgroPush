@@ -19,6 +19,10 @@ function sha256(value: string): string {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+function sanitizeLogField(value: string, maxLength = 200): string {
+  return String(value).replace(/[\r\n\t]/g, "_").slice(0, maxLength);
+}
+
 export interface CreatePendingTradeInput {
   tradeId: string;
   buyerAddress: string;
@@ -35,7 +39,8 @@ export type TradeListFilters = {
   sort?: string;
 };
 
-type TradeDatabase = Pick<PrismaClient, "trade" | "dispute" | "disputeCategory">;
+type TradeDatabase = Pick<PrismaClient, "trade" | "dispute" | "disputeCategory"> &
+  Partial<Pick<PrismaClient, "userWatchlist">>;
 
 export class TradeAccessDeniedError extends Error {
   constructor() {
@@ -70,16 +75,16 @@ export class TradeService {
   async createPendingTrade(input: CreatePendingTradeInput): Promise<Trade> {
     appLogger.info({
       requestId: undefined, // Will be filled by context if available
-      userId: input.buyerAddress,
-      paymentId: input.tradeId,
+      userId: sanitizeLogField(input.buyerAddress),
+      paymentId: sanitizeLogField(input.tradeId),
       provider: "stellar",
       status: "authorization_started",
       timestamp: new Date().toISOString()
     }, "Payment authorization started");
 
     TracingHelper.addEvent("authorization_started", {
-      paymentId: input.tradeId,
-      userId: input.buyerAddress
+      paymentId: sanitizeLogField(input.tradeId),
+      userId: sanitizeLogField(input.buyerAddress)
     });
 
     return this.prisma.trade.create({
@@ -100,6 +105,51 @@ export class TradeService {
       OR: [{ buyerAddress: address }, { sellerAddress: address }],
       ...(filters.status ? { status: filters.status } : {}),
     };
+
+    const watchlist = this.prisma.userWatchlist;
+    if (watchlist) {
+      // Prisma cannot order a relation by whether it belongs to *this* caller.
+      // Fetch the caller's indexed bookmarks first, then query only the
+      // remaining trades for the rest of the page. This keeps watched trades at
+      // the top without incorrectly promoting trades watched by other users.
+      const [entries, total] = await Promise.all([
+        watchlist.findMany({
+          where: { userAddress: address.toLowerCase() },
+          include: { trade: true },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        }),
+        this.prisma.trade.count({ where }),
+      ]);
+      const watched = entries
+        .map((entry) => entry.trade)
+        .filter((trade) =>
+          !filters.status || trade.status === filters.status,
+        );
+      const watchedIds = watched.map((trade) => trade.tradeId);
+      const watchedPage = watched.slice(skip, skip + limit);
+      const remainingSlots = limit - watchedPage.length;
+      const remainingSkip = Math.max(0, skip - watched.length);
+      const unwatchlisted = remainingSlots > 0
+        ? await this.prisma.trade.findMany({
+          where: watchedIds.length > 0
+            ? { AND: [where, { NOT: { tradeId: { in: watchedIds } } }] }
+            : where,
+          orderBy,
+          skip: remainingSkip,
+          take: remainingSlots,
+        })
+        : [];
+
+      return {
+        items: [...watchedPage, ...unwatchlisted],
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.max(1, Math.ceil(total / limit)),
+        },
+      };
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.trade.findMany({

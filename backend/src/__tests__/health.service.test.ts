@@ -16,7 +16,7 @@ import { AlertService } from "../services/alert.service";
 
 describe("HealthService", () => {
     let healthService: HealthService;
-    let mockPrisma: any;
+    let mockPrisma: { $queryRaw: jest.Mock; processedLedger: { findFirst: jest.Mock } };
     let mockRedis: { ping: jest.Mock };
     let mockAlerts: { dispatch: jest.Mock };
 
@@ -44,6 +44,7 @@ describe("HealthService", () => {
     describe("performHealthCheck", () => {
         it("should return healthy status when all checks pass", async () => {
             mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockResolvedValue("PONG");
             mockPrisma.processedLedger.findFirst.mockResolvedValue({
                 ledgerSequence: 12345,
                 processedAt: new Date(),
@@ -61,6 +62,7 @@ describe("HealthService", () => {
 
         it("should return unhealthy status when database check fails", async () => {
             mockPrisma.$queryRaw.mockRejectedValue(new Error("Connection failed"));
+            mockRedis.ping.mockResolvedValue("PONG");
             mockPrisma.processedLedger.findFirst.mockResolvedValue({
                 ledgerSequence: 12345,
                 processedAt: new Date(),
@@ -96,8 +98,23 @@ describe("HealthService", () => {
             );
         });
 
+        it("should return unhealthy status when Redis check fails", async () => {
+            mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockRejectedValue(new Error("Connection refused"));
+            mockPrisma.processedLedger.findFirst.mockResolvedValue({
+                ledgerSequence: 12345,
+                processedAt: new Date(),
+            });
+
+            const result = await healthService.performHealthCheck();
+
+            expect(result.status).toBe("unhealthy");
+            expect(result.checks.redis.status).toBe("down");
+        });
+
         it("should return unhealthy status when indexer lag exceeds threshold", async () => {
             mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockResolvedValue("PONG");
 
             const oldDate = new Date(Date.now() - 20 * 1000);
             mockPrisma.processedLedger.findFirst.mockResolvedValue({
@@ -112,8 +129,9 @@ describe("HealthService", () => {
             expect(result.details.indexerLagSeconds).toBeGreaterThan(15);
         });
 
-        it("should return unhealthy status when no processed ledgers exist", async () => {
+        it("should return unhealthy status when no processed events exist", async () => {
             mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockResolvedValue("PONG");
             mockPrisma.processedLedger.findFirst.mockResolvedValue(null);
 
             const result = await healthService.performHealthCheck();
@@ -130,7 +148,7 @@ describe("HealthService", () => {
                         setTimeout(() => resolve([{ health_check: 1 }]), 160)
                     )
             );
-
+            mockRedis.ping.mockResolvedValue("PONG");
             mockPrisma.processedLedger.findFirst.mockResolvedValue({
                 ledgerSequence: 12345,
                 processedAt: new Date(),
@@ -144,6 +162,7 @@ describe("HealthService", () => {
 
         it("should include uptime in response", async () => {
             mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockResolvedValue("PONG");
             mockPrisma.processedLedger.findFirst.mockResolvedValue({
                 ledgerSequence: 12345,
                 processedAt: new Date(),
@@ -163,7 +182,7 @@ describe("HealthService", () => {
                         setTimeout(() => reject(new Error("Timeout")), 250)
                     )
             );
-
+            mockRedis.ping.mockResolvedValue("PONG");
             mockPrisma.processedLedger.findFirst.mockResolvedValue({
                 ledgerSequence: 12345,
                 processedAt: new Date(),
@@ -174,8 +193,27 @@ describe("HealthService", () => {
             expect(result.checks.database.status).toBe("down");
         });
 
+        it("should handle Redis ping timeout", async () => {
+            mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockImplementation(
+                () =>
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Timeout")), 250)
+                    )
+            );
+            mockPrisma.processedLedger.findFirst.mockResolvedValue({
+                ledgerSequence: 12345,
+                processedAt: new Date(),
+            });
+
+            const result = await healthService.performHealthCheck();
+
+            expect(result.checks.redis.status).toBe("down");
+        });
+
         it("should calculate indexer lag correctly", async () => {
             mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockResolvedValue("PONG");
 
             const recentDate = new Date(Date.now() - 5 * 1000);
             mockPrisma.processedLedger.findFirst.mockResolvedValue({
@@ -188,6 +226,62 @@ describe("HealthService", () => {
             expect(result.status).toBe("healthy");
             expect(result.details.indexerLagSeconds).toBeLessThan(10);
             expect(result.details.indexerLagSeconds).toBeGreaterThan(0);
+        });
+
+        it("should include redis latency in details", async () => {
+            mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockResolvedValue("PONG");
+            mockPrisma.processedLedger.findFirst.mockResolvedValue({
+                ledgerSequence: 12345,
+                processedAt: new Date(),
+            });
+
+            const result = await healthService.performHealthCheck();
+
+            expect(result.details).toHaveProperty("redisLatency");
+            expect(result.details.redisLatency).toBeGreaterThanOrEqual(0);
+        });
+    });
+
+    describe("performStartupCheck", () => {
+        it("should return ready when database and redis are up", async () => {
+            mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockResolvedValue("PONG");
+
+            const result = await healthService.performStartupCheck();
+
+            expect(result.status).toBe("ready");
+            expect(result.checks.database.status).toBe("up");
+            expect(result.checks.redis.status).toBe("up");
+        });
+
+        it("should return not_ready when database is down", async () => {
+            mockPrisma.$queryRaw.mockRejectedValue(new Error("Connection failed"));
+            mockRedis.ping.mockResolvedValue("PONG");
+
+            const result = await healthService.performStartupCheck();
+
+            expect(result.status).toBe("not_ready");
+            expect(result.checks.database.status).toBe("down");
+        });
+
+        it("should return not_ready when redis is down", async () => {
+            mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockRejectedValue(new Error("Connection refused"));
+
+            const result = await healthService.performStartupCheck();
+
+            expect(result.status).toBe("not_ready");
+            expect(result.checks.redis.status).toBe("down");
+        });
+
+        it("should not query ProcessedEvent for startup check", async () => {
+            mockPrisma.$queryRaw.mockResolvedValue([{ health_check: 1 }]);
+            mockRedis.ping.mockResolvedValue("PONG");
+
+            await healthService.performStartupCheck();
+
+            expect(mockPrisma.processedLedger.findFirst).not.toHaveBeenCalled();
         });
     });
 });

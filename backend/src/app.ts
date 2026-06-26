@@ -9,16 +9,31 @@ import { requestIdMiddleware } from "./middleware/requestId";
 import { authRoutes } from "./routes/auth.routes";
 import { walletRoutes } from "./routes/wallet.routes";
 import { createTradeRouter } from "./routes/trade.routes";
+import { createTradeTemplateRouter } from "./routes/trade.template.routes";
+import { createTradeWatchlistRouter } from "./routes/trade.watchlist.routes";
+import { createTradeEvidenceRouter } from "./routes/trade.evidence.routes";
+import { createTradeExportRouter } from "./routes/trade.export.routes";
+import { createEscrowReleaseRouter } from "./routes/escrow.release.routes";
+import { createTradeManifestRouter } from "./routes/trade.manifest.routes";
 import { createManifestRouter } from "./routes/manifest.routes";
 import { createEvidenceRouter } from "./routes/evidence.routes";
 import { createAuditTrailRouter } from "./routes/auditTrail.routes";
 import { createGoalsRouter } from "./routes/goals.routes";
 import { createHealthRouter } from "./routes/health.routes";
+import { createNotificationPreferencesRouter } from "./routes/notifications.preferences.routes";
+import { createNotificationsRouter } from "./routes/notifications.inapp.routes";
 import { disputeRoutes } from "./routes/dispute.routes";
 import { disputeCategoryRoutes } from "./routes/disputeCategory.routes";
 import { createTreasuryRouter } from "./routes/treasury.routes";
 import userRoutes from "./routes/user.routes";
 import reputationRoutes from "./routes/reputation.routes";
+import { stellarFeesRoutes } from "./routes/stellar.fees";
+import { stellarTxStatusRoutes } from "./routes/stellar.tx.status";
+import { stellarAssetRoutes } from "./routes/stellar.asset";
+import { stellarAccountBalanceRoutes } from "./routes/stellar.account.balance";
+import { stellarAccountCreateRoutes } from "./routes/stellar.account.create";
+import { createContractStateRouter } from "./routes/contract.state.routes";
+import { webhooksRoutes } from "./routes/webhooks.routes";
 import { env } from "./config/env";
 
 /** Parse the CORS_ORIGINS env var into a usable allowlist.
@@ -102,11 +117,19 @@ export function createApp(): express.Application {
   app.use("/wallet", walletRoutes);
   app.use("/users", userRoutes);
   app.use("/users", reputationRoutes);
+  app.use(createNotificationPreferencesRouter());
+  app.use(createNotificationsRouter());
 
-  const tradeRouter = createTradeRouter();
-  app.use("/trades", tradeRouter);
+  // These literal routes must precede the generic /trades/:id handler.
+  app.use("/trades", createTradeExportRouter());
+  app.use("/trades", createTradeTemplateRouter());
+  app.use("/trades", createTradeWatchlistRouter());
+  app.use("/trades", createTradeEvidenceRouter());
+  app.use("/trades", createEscrowReleaseRouter());
+  app.use("/trades", createTradeRouter());
 
   // Manifest: POST /trades/:id/manifest
+  app.use("/trades/:id/manifest", createTradeManifestRouter());
   app.use("/trades/:id/manifest", createManifestRouter());
 
   // Evidence: GET /trades/:id/evidence and GET /evidence/:cid/stream
@@ -124,8 +147,19 @@ export function createApp(): express.Application {
   // Dispute categories: CRUD /dispute-categories
   app.use("/dispute-categories", disputeCategoryRoutes);
 
+  // Stellar network endpoints
+  app.use("/stellar/fees", stellarFeesRoutes);
+  app.use("/stellar/tx", stellarTxStatusRoutes);
+  app.use("/stellar/assets", stellarAssetRoutes);
+  app.use("/stellar/account", stellarAccountCreateRoutes);
+  app.use("/stellar/account", stellarAccountBalanceRoutes);
+  app.use("/contract", createContractStateRouter());
+
   // Treasury management
   app.use("/treasury", createTreasuryRouter());
+
+  // Webhooks: CRUD /webhooks
+  app.use("/webhooks", webhooksRoutes);
 
   // Error handler is registered last so it catches errors from all routes,
   // including any routes added to the app after createApp() returns.
@@ -165,4 +199,3 @@ export function createApp(): express.Application {
 
   return app;
 }
-
