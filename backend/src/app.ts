@@ -14,6 +14,7 @@ import { createTradeWatchlistRouter } from "./routes/trade.watchlist.routes";
 import { createTradeEvidenceRouter } from "./routes/trade.evidence.routes";
 import { createTradeExportRouter } from "./routes/trade.export.routes";
 import { createEscrowReleaseRouter } from "./routes/escrow.release.routes";
+import { createEscrowScheduleRouter } from "./routes/escrow.schedule.routes";
 import { createTradeManifestRouter } from "./routes/trade.manifest.routes";
 import { createManifestRouter } from "./routes/manifest.routes";
 import { createTradeNotesRouter } from "./routes/trade.notes.routes";
@@ -21,6 +22,7 @@ import { createEvidenceRouter } from "./routes/evidence.routes";
 import { createAuditTrailRouter } from "./routes/auditTrail.routes";
 import { createGoalsRouter } from "./routes/goals.routes";
 import { createHealthRouter } from "./routes/health.routes";
+import { createHealthDetailRouter } from "./routes/health.detail.routes";
 import { createNotificationPreferencesRouter } from "./routes/notifications.preferences.routes";
 import { createNotificationsRouter } from "./routes/notifications.inapp.routes";
 import { disputeRoutes } from "./routes/dispute.routes";
@@ -33,6 +35,7 @@ import { stellarTxStatusRoutes } from "./routes/stellar.tx.status";
 import { stellarAssetRoutes } from "./routes/stellar.asset";
 import { stellarAccountBalanceRoutes } from "./routes/stellar.account.balance";
 import { stellarAccountCreateRoutes } from "./routes/stellar.account.create";
+import { createContractStateRouter } from "./routes/contract.state.routes";
 import { webhooksRoutes } from "./routes/webhooks.routes";
 import { env } from "./config/env";
 
@@ -112,6 +115,7 @@ export function createApp(): express.Application {
 
   // Enhanced health check with deep introspection
   app.use("/health", createHealthRouter());
+  app.use("/health", createHealthDetailRouter());
 
   app.use("/auth", authRoutes);
   app.use("/wallet", walletRoutes);
@@ -126,6 +130,7 @@ export function createApp(): express.Application {
   app.use("/trades", createTradeWatchlistRouter());
   app.use("/trades", createTradeEvidenceRouter());
   app.use("/trades", createEscrowReleaseRouter());
+  app.use("/trades", createEscrowScheduleRouter());
   app.use("/trades", createTradeRouter());
 
   // Notes: POST /trades/:id/notes and GET /trades/:id/notes
@@ -156,6 +161,7 @@ export function createApp(): express.Application {
   app.use("/stellar/assets", stellarAssetRoutes);
   app.use("/stellar/account", stellarAccountCreateRoutes);
   app.use("/stellar/account", stellarAccountBalanceRoutes);
+  app.use("/contract", createContractStateRouter());
 
   // Treasury management
   app.use("/treasury", createTreasuryRouter());
