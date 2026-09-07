@@ -112,6 +112,9 @@ normally does once a wallet signs and submits each transaction.
    ```bash
    cd backend
    cp .env.example .env
+   # The smoke test signs in as a demo "admin/mediator" using a well-known,
+   # funds-less local-only keypair — add its public key to the allowlist:
+   echo 'ADMIN_STELLAR_PUBKEYS=GBGZ4I3UFZRYBWLLGVDHG3AEII53ZZYIVN6TXY4IQHEIUGWBVEADQS5L' >> .env
    pnpm install
    npx prisma migrate deploy
    DEMO_MODE=true pnpm run dev
