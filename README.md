@@ -252,7 +252,7 @@ Amana is an open-source project aimed at improving food security and trade effic
 
 **New to the project?** Start with the [Contributor Onboarding Guide](./docs/CONTRIBUTOR_ONBOARDING.md) for setup instructions and development workflows.
 
-**Full guidelines**: See [CONTRIBUTING.md](./CONTRIBUTING.md) for code standards, testing requirements, and PR process.
+**Full guidelines**: See [CONTRIBUTING.md](./CONTRIBUTING.md) for code standards, testing requirements, and PR process. All participants are expected to follow the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 Quick start:
 1. Fork the Project.

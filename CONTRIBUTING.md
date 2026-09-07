@@ -8,7 +8,15 @@ Please review the guidelines below before opening a pull request or submitting a
 
 ## Code of Conduct
 
-We expect all contributors to adhere to a professional, respectful, and collaborative code of conduct. Maintain constructive feedback during reviews and prioritize code quality, security, and developer ergonomics.
+This project follows the [Contributor Covenant Code of Conduct](./CODE_OF_CONDUCT.md). Maintain constructive feedback during reviews and prioritize code quality, security, and developer ergonomics.
+
+---
+
+## Maintainers
+
+- **[@KingFRANKHOOD](https://github.com/KingFRANKHOOD)** reviews pull requests and triages issues for this repository.
+- **Response time**: PRs and issues are typically reviewed within a few business days. If you haven't heard back after a week, feel free to ping the PR/issue directly.
+- Not all contributions require maintainer sign-off before you start — see [Pull Request Process](#pull-request-process) below for what to expect.
 
 ---
 
