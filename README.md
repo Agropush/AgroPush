@@ -90,6 +90,54 @@ The backend writes `backend/src/docs/openapi.json` from the YAML spec in non-pro
 1. `cd contracts/amana_escrow`
 2. `cargo build`
 
+## 🎬 How to Run This Demo
+
+The fastest way to see the core Amana trade lifecycle working end-to-end —
+**create → deposit → confirm delivery → release funds** — through the real
+API, real business logic, and a real Postgres database, in a few minutes
+with no cloud accounts, deployed contract, or funded wallet required.
+
+`DEMO_MODE=true` stubs only the Soroban RPC calls (which need a deployed
+escrow contract and a funded testnet wallet neither this script nor a fresh
+clone has). Everything else — auth, validation, the trade state machine,
+Postgres — runs for real. Chain confirmation is simulated via the app's own
+admin trade-status endpoint, standing in for what the on-chain event indexer
+normally does once a wallet signs and submits each transaction.
+
+1. **Start local Postgres + Redis** (no cloud accounts needed):
+   ```bash
+   docker compose --profile dev up -d
+   ```
+2. **Configure and start the backend:**
+   ```bash
+   cd backend
+   cp .env.example .env
+   pnpm install
+   npx prisma migrate deploy
+   DEMO_MODE=true pnpm run dev
+   ```
+3. **In another terminal, run the smoke test:**
+   ```bash
+   cd backend
+   pnpm demo:smoke
+   ```
+   This drives a fresh trade through every stage of the lifecycle using
+   real challenge/signature auth (freshly generated Stellar keypairs) and
+   prints a pass/fail checklist — 12/12 on a clean setup.
+4. **Optional — see it in the UI:** with the backend running, start the
+   frontend (`cd frontend && cp .env.example .env.local && pnpm install &&
+   pnpm run dev`) and open `http://localhost:3000/trades/create`. The
+   wizard is wired to the same backend and API contract the smoke test
+   exercises. Completing a trade fully in the browser still requires a
+   Freighter wallet and signable transactions, which `DEMO_MODE`'s
+   placeholder XDRs don't provide — the smoke test is the authoritative,
+   fully-automated proof that the lifecycle works.
+
+**What this demonstrates:** the real trade lifecycle state machine, auth,
+and Postgres persistence all work correctly end-to-end. **What's stubbed:**
+Soroban contract calls, Freighter wallet signing, and on-chain event
+indexing — see the [Roadmap](#-roadmap) for where those stand.
+
 ## 🔒 Required PR CI Gates
 
 Amana enforces stack-level CI gates on pull requests through `.github/workflows/ci.yml`.
