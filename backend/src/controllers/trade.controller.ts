@@ -30,12 +30,16 @@ function parseAdminPubkeys(): Set<string> {
   return getMediatorAllowlist();
 }
 
+// db.ts's Prisma middleware lowercases Trade.buyerAddress/sellerAddress on
+// write, but the JWT's walletAddress claim keeps its canonical (StrKey-valid)
+// case — so ownership checks must normalize case, or every one of these
+// would reject the trade's own buyer/seller.
 export function isBuyer(tradeBuyer: string, caller: string): boolean {
-  return tradeBuyer === caller;
+  return tradeBuyer.toLowerCase() === caller.toLowerCase();
 }
 
 export function isSeller(tradeSeller: string, caller: string): boolean {
-  return tradeSeller === caller;
+  return tradeSeller.toLowerCase() === caller.toLowerCase();
 }
 
 export function isBuyerOrAdmin(
@@ -43,7 +47,9 @@ export function isBuyerOrAdmin(
   caller: string,
   admins: Set<string> = parseAdminPubkeys(),
 ): boolean {
-  return tradeBuyer === caller || admins.has(caller);
+  // admins is compared case-preserved: ADMIN_STELLAR_PUBKEYS isn't run
+  // through the DB lowercase middleware, so it stays in its configured case.
+  return tradeBuyer.toLowerCase() === caller.toLowerCase() || admins.has(caller);
 }
 
 export class TradeController {
@@ -153,7 +159,7 @@ export class TradeController {
         throw new AppError(ErrorCode.TRADE_NOT_FOUND, "Trade not found", 404);
       }
 
-      if (trade.buyerAddress !== callerAddress) {
+      if (trade.buyerAddress.toLowerCase() !== callerAddress.toLowerCase()) {
         throw new AppError(ErrorCode.TRADE_ACCESS_DENIED, "Forbidden", 403);
       }
 

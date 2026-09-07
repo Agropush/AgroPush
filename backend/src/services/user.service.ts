@@ -1,19 +1,43 @@
 import { getSupabaseClient } from "../lib/supabase";
+import { prisma as defaultPrisma } from "../lib/db";
 import { UpdateProfileInput, updateProfileSchema } from "../validators/user.validators";
 import { AppError, ErrorCode } from "../errors/errorCodes";
 import { StrKey } from "@stellar/stellar-sdk";
 
-/** 
+/**
  * Find a user by wallet address or create a new one if not exists.
  * Used during authentication flow.
+ *
+ * Trade.buyerAddress/sellerAddress have foreign keys against the app's own
+ * Postgres User table, which nothing else populates — so when Supabase isn't
+ * configured (the documented default: SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY
+ * are blank in .env.example), fall back to upserting there directly instead
+ * of failing every login. When Supabase *is* configured, behavior/shape is
+ * unchanged from before.
  */
 export async function findOrCreateUser(address: string) {
   if (!StrKey.isValidEd25519PublicKey(address)) {
     throw new AppError(ErrorCode.VALIDATION_ERROR, 'Invalid Stellar public key', 400);
   }
 
-  const supabase = getSupabaseClient();
   const normalizedAddress = address.toLowerCase();
+
+  let supabase;
+  try {
+    supabase = getSupabaseClient();
+  } catch {
+    // db.ts's $use middleware lowercases User.walletAddress/Trade.buyerAddress/
+    // sellerAddress on write — but only for `.create()`/`.update()` calls
+    // (it inspects params.args.data, which upsert doesn't use — upsert's args
+    // are {where, create, update}, so it silently bypasses the middleware).
+    // Lowercase explicitly here so this row matches what Trade rows will
+    // actually have stored once the middleware processes their create() call.
+    return defaultPrisma.user.upsert({
+      where: { walletAddress: normalizedAddress },
+      update: {},
+      create: { walletAddress: normalizedAddress, displayName: normalizedAddress },
+    });
+  }
 
   try {
     const { data, error } = await supabase

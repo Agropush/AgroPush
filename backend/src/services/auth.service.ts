@@ -236,8 +236,13 @@ export class AuthService {
     const jti = crypto.randomUUID();
 
     const payload: JWTPayload = {
-      sub: walletAddress.toLowerCase(),
-      walletAddress: walletAddress.toLowerCase(),
+      // Stellar StrKey addresses are case-sensitive (base32-encoded) —
+      // lowercasing produces a string that fails StrKey.isValidEd25519PublicKey
+      // everywhere downstream (trade creation, admin allowlist matching,
+      // ContractService's Address.fromString). Keep the validated, canonical
+      // case the client authenticated with.
+      sub: walletAddress,
+      walletAddress: walletAddress,
       jti,
       iss: process.env.JWT_ISSUER ?? env.JWT_ISSUER,
       aud: process.env.JWT_AUDIENCE ?? env.JWT_AUDIENCE,
