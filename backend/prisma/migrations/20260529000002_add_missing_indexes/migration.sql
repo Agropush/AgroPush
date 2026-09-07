@@ -1,6 +1,13 @@
 -- Add missing indexes for performance optimization
 -- These indexes were identified during schema review to improve query performance
 
+-- schema.prisma declares Trade.version (optimistic concurrency counter, used by
+-- eventHandlers.ts status transitions) but no prior migration ever added the
+-- column, so this migration failed on a fresh `prisma migrate deploy` with
+-- "column \"version\" does not exist". Adding it here, since this migration
+-- could never have applied successfully without it.
+ALTER TABLE "Trade" ADD COLUMN IF NOT EXISTS "version" INTEGER NOT NULL DEFAULT 0;
+
 -- Index on Trade.version for optimistic concurrency queries
 CREATE INDEX IF NOT EXISTS "Trade_version_idx" ON "Trade"("version");
 
