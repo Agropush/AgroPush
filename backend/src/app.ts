@@ -41,6 +41,7 @@ import { stellarAccountCreateRoutes } from "./routes/stellar.account.create";
 import { createContractStateRouter } from "./routes/contract.state.routes";
 import { createAdminFeaturesRouter } from "./routes/admin.features.routes";
 import { createAdminEvidenceVerificationRouter } from "./routes/admin.evidence-verification.routes";
+import { createAdminTradeBatchRouter } from "./routes/admin.trades.batch.routes";
 import { createTrustScoreRouter } from "./routes/trust-score.routes";
 import { webhooksRoutes } from "./routes/webhooks.routes";
 import { createEventRouter } from "./routes/events.routes";
@@ -215,6 +216,9 @@ export function createApp(
 
   // Evidence pin verification (admin-managed)
   app.use(createAdminEvidenceVerificationRouter());
+
+  // Admin batch trade-status transitions (ops/support tooling)
+  app.use(createAdminTradeBatchRouter());
 
   // Webhooks: CRUD /webhooks
   app.use("/webhooks", webhooksRoutes);
