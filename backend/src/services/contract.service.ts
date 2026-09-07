@@ -20,7 +20,10 @@ function isDemoMode(): boolean {
 }
 
 function demoTradeId(): string {
-  return `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  // Small integer, like real Soroban trade IDs (a u64 counter) — not
+  // Date.now()-based, which overflows Postgres INT4 in the trade lookup's
+  // numeric-id fallback (id numericId <= 2^31-1).
+  return String(Math.floor(Math.random() * 1_000_000) + 1);
 }
 
 function demoXdr(): string {
