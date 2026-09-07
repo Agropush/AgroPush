@@ -81,8 +81,13 @@ const healthService = new HealthService();
 
 async function bootstrap() {
   const isTest = (process.env.NODE_ENV ?? env.NODE_ENV) === "test";
+  // The readiness check's DB probe races a cold first Prisma query (query-engine
+  // startup + OTel instrumentation) against a 200ms timeout, which can fail on a
+  // freshly started process even when the database is healthy. Demo mode skips
+  // this gate the same way test mode does, rather than loosening the threshold.
+  const isDemoMode = process.env.DEMO_MODE === "true";
 
-  if (!isTest) {
+  if (!isTest && !isDemoMode) {
     appLogger.info("Performing startup readiness check...");
     try {
       const startupCheck = await healthService.performStartupCheck();

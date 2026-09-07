@@ -8,6 +8,25 @@ import { TOKEN_BASE, TOKEN_DECIMALS } from "../config/token";
 const DEFAULT_RPC_URL = "https://soroban-testnet.stellar.org";
 const DEFAULT_TIMEOUT_SECONDS = 300;
 
+/**
+ * Demo mode skips real Soroban RPC calls (no deployed contract / funded
+ * testnet account required) so the trade lifecycle can be exercised locally.
+ * Returned XDRs are placeholders, not valid signable transactions — trade
+ * status still advances for real via the app's own admin status endpoint,
+ * standing in for the on-chain event indexer. Never enable in production.
+ */
+function isDemoMode(): boolean {
+  return process.env.DEMO_MODE === "true";
+}
+
+function demoTradeId(): string {
+  return `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+}
+
+function demoXdr(): string {
+  return "DEMO_MODE_PLACEHOLDER_XDR";
+}
+
 type RpcServerFactory = (rpcUrl: string) => StellarSdk.rpc.Server;
 
 let serverFactory: RpcServerFactory = (rpcUrl: string) =>
@@ -119,6 +138,10 @@ export async function buildConfirmDeliveryTx(
     );
   }
 
+  if (isDemoMode()) {
+    return demoXdr();
+  }
+
   const server = getRpcServer(getRpcUrl());
   const account = await getRpcAccount(server, sourceAccountId);
   const contract = new StellarSdk.Contract(getEscrowContractId());
@@ -152,6 +175,10 @@ export async function buildReleaseFundsTx(
     throw new Error(
       `Trade must be DELIVERED before release_funds (current: ${trade.status})`,
     );
+  }
+
+  if (isDemoMode()) {
+    return demoXdr();
   }
 
   const server = getRpcServer(getRpcUrl());
@@ -232,6 +259,10 @@ export class ContractService {
       throw new Error("CONTRACT_ID is not configured");
     }
 
+    if (isDemoMode()) {
+      return { tradeId: demoTradeId(), unsignedXdr: demoXdr() };
+    }
+
     const account = await getRpcAccount(this.rpcServer, input.buyerAddress);
     const contract = new StellarSdk.Contract(this.contractId);
     const amount = this.toContractAmount(input.amountUsdc);
@@ -273,6 +304,10 @@ export class ContractService {
 
     if (!this.tokenContractId) {
       throw new Error("TOKEN_CONTRACT_ID is not configured");
+    }
+
+    if (isDemoMode()) {
+      return { unsignedXdr: demoXdr() };
     }
 
     const account = await getRpcAccount(this.rpcServer, trade.buyerAddress);
