@@ -8,6 +8,7 @@
     "start": "node dist/index.js",
     "test": "jest --config jest.config.js --forceExit --detectOpenHandles",
     "test:pact": "jest --config jest.config.js --runInBand src/__tests__/trades.pact.verify.test.ts",
+    "demo:smoke": "tsx scripts/demo-smoke-test.ts",
     "lint": "eslint src/"
   },
   "prisma": {
