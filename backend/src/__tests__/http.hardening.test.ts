@@ -85,15 +85,15 @@ describe("Helmet security headers", () => {
 
 describe("CORS allowlist", () => {
   it("allows a request from a whitelisted origin", async () => {
-    const app = await buildApp("https://app.amana.com");
+    const app = await buildApp("https://app.agropush.com");
     const res = await request(app)
       .get("/health")
-      .set("Origin", "https://app.amana.com");
-    expect(res.headers["access-control-allow-origin"]).toBe("https://app.amana.com");
+      .set("Origin", "https://app.agropush.com");
+    expect(res.headers["access-control-allow-origin"]).toBe("https://app.agropush.com");
   });
 
   it("blocks a request from a non-whitelisted origin", async () => {
-    const app = await buildApp("https://app.amana.com");
+    const app = await buildApp("https://app.agropush.com");
     const res = await request(app)
       .options("/health")
       .set("Origin", "https://evil.example.com")
@@ -104,21 +104,21 @@ describe("CORS allowlist", () => {
   });
 
   it("allows multiple whitelisted origins", async () => {
-    const app = await buildApp("https://app.amana.com,https://staging.amana.com");
+    const app = await buildApp("https://app.agropush.com,https://staging.agropush.com");
 
     const res1 = await request(app)
       .get("/health")
-      .set("Origin", "https://app.amana.com");
-    expect(res1.headers["access-control-allow-origin"]).toBe("https://app.amana.com");
+      .set("Origin", "https://app.agropush.com");
+    expect(res1.headers["access-control-allow-origin"]).toBe("https://app.agropush.com");
 
     const res2 = await request(app)
       .get("/health")
-      .set("Origin", "https://staging.amana.com");
-    expect(res2.headers["access-control-allow-origin"]).toBe("https://staging.amana.com");
+      .set("Origin", "https://staging.agropush.com");
+    expect(res2.headers["access-control-allow-origin"]).toBe("https://staging.agropush.com");
   });
 
   it("permits server-to-server calls with no Origin header", async () => {
-    const app = await buildApp("https://app.amana.com");
+    const app = await buildApp("https://app.agropush.com");
     const res = await request(app).get("/health"); // no Origin
     expect(res.status).toBe(200);
   });

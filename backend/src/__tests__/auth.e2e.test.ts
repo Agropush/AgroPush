@@ -61,8 +61,8 @@ jest.mock("../services/user.service", () => ({
 
 // ── Test constants ────────────────────────────────────────────────────────────
 const JWT_SECRET = "a-very-long-test-secret-at-least-32-chars!";
-const JWT_ISSUER = "amana";
-const JWT_AUDIENCE = "amana-api";
+const JWT_ISSUER = "agropush";
+const JWT_AUDIENCE = "agropush-api";
 
 // ── App factory ───────────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-var-requires

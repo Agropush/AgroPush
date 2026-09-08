@@ -1,6 +1,6 @@
 import { Counter, Histogram, metrics } from "@opentelemetry/api";
 
-const METER_NAME = "amana-backend";
+const METER_NAME = "agropush-backend";
 
 export type StellarTransactionOutcome =
   | "success"

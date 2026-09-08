@@ -55,8 +55,8 @@ manifestApp.use(errorHandler);
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const JWT_SECRET = "test-secret-at-least-32-characters-long";
-const JWT_ISSUER = "amana";
-const JWT_AUDIENCE = "amana-api";
+const JWT_ISSUER = "agropush";
+const JWT_AUDIENCE = "agropush-api";
 
 function makeToken(walletAddress: string): string {
   const now = Math.floor(Date.now() / 1000);

@@ -1,11 +1,11 @@
-# Amana SDK Usage Guide
+# AgroPush SDK Usage Guide
 
-This guide shows how to build a typed TypeScript client wrapper for the Amana
+This guide shows how to build a typed TypeScript client wrapper for the AgroPush
 API that can be reused across frontend, mobile, and backend projects.
 
 ## Installation
 
-The Amana API requires no SDK — use standard `fetch` or any HTTP client. The
+The AgroPush API requires no SDK — use standard `fetch` or any HTTP client. The
 following examples use `axios` for convenience, but you can substitute `fetch`
 directly.
 
@@ -14,15 +14,15 @@ directly.
 ### Base Client
 
 ```typescript
-// amana-client.ts
+// agropush-client.ts
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 
-export interface AmanaClientConfig {
+export interface AgroPushClientConfig {
   baseUrl: string;
   getToken: () => string | null;
 }
 
-export function createAmanaClient(config: AmanaClientConfig): AxiosInstance {
+export function createAgroPushClient(config: AgroPushClientConfig): AxiosInstance {
   const client = axios.create({
     baseURL: config.baseUrl,
     timeout: 15_000,
@@ -54,7 +54,7 @@ export function createAmanaClient(config: AmanaClientConfig): AxiosInstance {
 ### Types
 
 ```typescript
-// amana-types.ts
+// agropush-types.ts
 export type TradeStatus =
   | 'PENDING_SIGNATURE'
   | 'PENDING_DEPOSIT'
@@ -98,9 +98,9 @@ export interface ApiError {
 ### Trade Operations
 
 ```typescript
-// amana-trades.ts
+// agropush-trades.ts
 import type { AxiosInstance } from 'axios';
-import type { Trade, PaginatedResponse, TradeStatus } from './amana-types';
+import type { Trade, PaginatedResponse, TradeStatus } from './agropush-types';
 
 export class TradeService {
   constructor(private client: AxiosInstance) {}
@@ -178,7 +178,7 @@ export class TradeService {
 ### Auth Service
 
 ```typescript
-// amana-auth.ts
+// agropush-auth.ts
 import type { AxiosInstance } from 'axios';
 
 export class AuthService {
@@ -211,7 +211,7 @@ export class AuthService {
 ### Stellar Proxy Service
 
 ```typescript
-// amana-stellar.ts
+// agropush-stellar.ts
 import type { AxiosInstance } from 'axios';
 
 export class StellarService {
@@ -238,13 +238,13 @@ export class StellarService {
 
 ```typescript
 // index.ts
-import { createAmanaClient } from './amana-client';
-import { TradeService } from './amana-trades';
-import { AuthService } from './amana-auth';
-import { StellarService } from './amana-stellar';
+import { createAgroPushClient } from './agropush-client';
+import { TradeService } from './agropush-trades';
+import { AuthService } from './agropush-auth';
+import { StellarService } from './agropush-stellar';
 
-export function createAmanaSDK(config: { baseUrl: string; getToken: () => string | null }) {
-  const client = createAmanaClient(config);
+export function createAgroPushSDK(config: { baseUrl: string; getToken: () => string | null }) {
+  const client = createAgroPushClient(config);
 
   return {
     trades: new TradeService(client),
@@ -254,18 +254,18 @@ export function createAmanaSDK(config: { baseUrl: string; getToken: () => string
 }
 
 // Usage
-const amana = createAmanaSDK({
-  baseUrl: 'https://api.amana.com',
-  getToken: () => localStorage.getItem('amana_jwt'),
+const agropush = createAgroPushSDK({
+  baseUrl: 'https://api.agropush.com',
+  getToken: () => localStorage.getItem('agropush_jwt'),
 });
 
 // Authenticate
-const { challenge } = await amana.auth.challenge('G...');
+const { challenge } = await agropush.auth.challenge('G...');
 // (sign challenge with Stellar wallet, then:)
-const { token } = await amana.auth.verify('G...', signedChallenge);
+const { token } = await agropush.auth.verify('G...', signedChallenge);
 
 // Create a trade
-const trade = await amana.trades.create({
+const trade = await agropush.trades.create({
   sellerAddress: 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
   amountUsdc: '1000.50',
   buyerLossBps: 5000,
@@ -275,23 +275,23 @@ const trade = await amana.trades.create({
 console.log('Trade created:', trade.id);
 
 // List funded trades
-const { data: fundedTrades } = await amana.trades.list({
+const { data: fundedTrades } = await agropush.trades.list({
   status: 'FUNDED',
   page: 1,
   limit: 20,
 });
 
 // Get Stellar fees
-const { feeStats } = await amana.stellar.getFees();
+const { feeStats } = await agropush.stellar.getFees();
 ```
 
 ## React Native / Expo Usage
 
 ```tsx
-import { createAmanaSDK } from './amana-sdk';
+import { createAgroPushSDK } from './agropush-sdk';
 import * as SecureStore from 'expo-secure-store';
 
-const amana = createAmanaSDK({
+const agropush = createAgroPushSDK({
   baseUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000',
   getToken: () => {
     // Retrieve from SecureStore synchronously in effect
@@ -303,9 +303,9 @@ async function TradeListScreen() {
   const [trades, setTrades] = useState([]);
 
   useEffect(() => {
-    const token = await SecureStore.getItemAsync('amana_jwt');
+    const token = await SecureStore.getItemAsync('agropush_jwt');
     if (token) {
-      const client = createAmanaClient({ baseUrl, getToken: () => token });
+      const client = createAgroPushClient({ baseUrl, getToken: () => token });
       const { data } = await new TradeService(client).list();
       setTrades(data);
     }
@@ -318,16 +318,16 @@ async function TradeListScreen() {
 ## Node.js / Backend Usage
 
 ```typescript
-import { createAmanaSDK } from './amana-sdk';
+import { createAgroPushSDK } from './agropush-sdk';
 
-const amana = createAmanaSDK({
-  baseUrl: process.env.AMANA_API_URL ?? 'http://localhost:4000',
-  getToken: () => process.env.AMANA_API_TOKEN ?? null,
+const agropush = createAgroPushSDK({
+  baseUrl: process.env.AGROPUSH_API_URL ?? 'http://localhost:4000',
+  getToken: () => process.env.AGROPUSH_API_TOKEN ?? null,
 });
 
 // Use in a worker or cron job
 async function dailyReconciliation() {
-  const { data } = await amana.trades.list({ status: 'COMPLETED', limit: 100 });
+  const { data } = await agropush.trades.list({ status: 'COMPLETED', limit: 100 });
   console.log(`Reconciled ${data.length} completed trades`);
 }
 ```

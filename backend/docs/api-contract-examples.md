@@ -1,7 +1,7 @@
-# Amana API Contract Examples
+# AgroPush API Contract Examples
 
 This document provides working code snippets in JavaScript/TypeScript demonstrating
-the Amana backend API: authentication, trade lifecycle, dispute management, and
+the AgroPush backend API: authentication, trade lifecycle, dispute management, and
 evidence upload. All examples use `fetch` (Node 18+) and require no external SDK.
 
 ## Table of Contents
@@ -20,12 +20,12 @@ evidence upload. All examples use `fetch` (Node 18+) and require no external SDK
 
 ## Authentication
 
-Amana uses a challenge/response flow with Stellar key pairs.
+AgroPush uses a challenge/response flow with Stellar key pairs.
 
 ### Step 1: Request Challenge
 
 ```typescript
-const BASE_URL = 'https://api.amana.com';
+const BASE_URL = 'https://api.agropush.com';
 
 async function requestChallenge(walletAddress: string) {
   const res = await fetch(`${BASE_URL}/auth/challenge`, {
@@ -34,7 +34,7 @@ async function requestChallenge(walletAddress: string) {
     body: JSON.stringify({ walletAddress }),
   });
   const { challenge } = await res.json();
-  return challenge; // e.g. "amana:login:1742794421:7ced1c65"
+  return challenge; // e.g. "agropush:login:1742794421:7ced1c65"
 }
 ```
 
@@ -307,7 +307,7 @@ async function getAuditTrail(
 All errors follow a consistent JSON structure:
 
 ```typescript
-interface AmanaError {
+interface AgroPushError {
   error: {
     code: string;
     message: string;

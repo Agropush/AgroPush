@@ -69,7 +69,7 @@ export interface SorobanContractEvent {
 }
 
 export const EVENT_TOPIC_MAP: Record<string, EventType> = {
-  "amana:initialized": EventType.Initialized,
+  "agropush:initialized": EventType.Initialized,
   TRDCRT: EventType.TradeCreated,
   TRDFND: EventType.TradeFunded,
   TRDCAN: EventType.TradeCancelled,

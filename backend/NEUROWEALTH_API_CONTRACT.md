@@ -2,12 +2,12 @@
 
 ## Overview
 
-The Amana backend exposes a RESTful API for managing escrow trades, disputes, evidence, and wallet interactions on the Stellar/Soroban network. This document specifies the API contract including endpoints, authentication, request/response formats, and error handling.
+The AgroPush backend exposes a RESTful API for managing escrow trades, disputes, evidence, and wallet interactions on the Stellar/Soroban network. This document specifies the API contract including endpoints, authentication, request/response formats, and error handling.
 
 ## Base URL
 
 ```
-https://api.amana.com  # Production
+https://api.agropush.com  # Production
 http://localhost:4000  # Development
 ```
 
@@ -25,8 +25,8 @@ Authorization: Bearer <jwt_token>
 
 **JWT Structure:**
 
-- **Issuer**: `amana` (configurable via `JWT_ISSUER`)
-- **Audience**: `amana-api` (configurable via `JWT_AUDIENCE`)
+- **Issuer**: `agropush` (configurable via `JWT_ISSUER`)
+- **Audience**: `agropush-api` (configurable via `JWT_AUDIENCE`)
 - **Expiration**: 24 hours by default (configurable via `JWT_EXPIRES_IN`)
 - **Secret**: Minimum 32 characters (via `JWT_SECRET`)
 
@@ -37,8 +37,8 @@ Authorization: Bearer <jwt_token>
   "walletAddress": "GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
   "iat": 1234567890,
   "exp": 1234567890,
-  "iss": "amana",
-  "aud": "amana-api"
+  "iss": "agropush",
+  "aud": "agropush-api"
 }
 ```
 
@@ -645,13 +645,13 @@ CORS_ORIGINS=
 **Production:**
 
 ```
-CORS_ORIGINS=https://app.amana.com,https://staging.amana.com
+CORS_ORIGINS=https://app.agropush.com,https://staging.agropush.com
 ```
 
 **Response Headers:**
 
 ```
-Access-Control-Allow-Origin: https://app.amana.com
+Access-Control-Allow-Origin: https://app.agropush.com
 Access-Control-Allow-Credentials: true
 Access-Control-Allow-Methods: GET, POST, OPTIONS
 Access-Control-Allow-Headers: Content-Type, Authorization
@@ -756,7 +756,7 @@ For debugging, collect:
 Then query logs:
 
 ```bash
-grep "correlation_id=12345678" logs/amana-backend.log
+grep "correlation_id=12345678" logs/agropush-backend.log
 ```
 
 Or in Jaeger/Zipkin UI, search by trace ID.

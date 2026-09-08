@@ -165,7 +165,7 @@ export class HealthService {
 
     try {
       await Promise.race([
-        horizonServer.loadAccount(env.AMANA_ESCROW_CONTRACT_ID),
+        horizonServer.loadAccount(env.AGROPUSH_ESCROW_CONTRACT_ID),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Stellar RPC timeout")), timeout),
         ),
@@ -264,7 +264,7 @@ export class HealthService {
     const criticalVars = [
       "DATABASE_URL",
       "JWT_SECRET",
-      "AMANA_ESCROW_CONTRACT_ID",
+      "AGROPUSH_ESCROW_CONTRACT_ID",
       "USDC_CONTRACT_ID",
     ];
 

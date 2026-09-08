@@ -106,7 +106,7 @@ describe('Backward-compatibility scan', () => {
           'DROP TABLE': 'DROP TABLE "Foo";',
           'DROP COLUMN': 'ALTER TABLE "Foo" DROP COLUMN "bar";',
           'DROP SCHEMA': 'DROP SCHEMA public CASCADE;',
-          'DROP DATABASE': 'DROP DATABASE "amana";',
+          'DROP DATABASE': 'DROP DATABASE "agropush";',
           'DROP VIEW': 'DROP VIEW IF EXISTS "v_foo";',
           'DROP INDEX': 'DROP INDEX IF EXISTS idx_foo;',
           TRUNCATE: 'TRUNCATE TABLE "Foo";',

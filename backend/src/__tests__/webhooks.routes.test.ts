@@ -1,6 +1,6 @@
 process.env.JWT_SECRET = "a".repeat(32);
-process.env.JWT_ISSUER = "amana";
-process.env.JWT_AUDIENCE = "amana-api";
+process.env.JWT_ISSUER = "agropush";
+process.env.JWT_AUDIENCE = "agropush-api";
 process.env.DATABASE_URL = "postgres://dummy";
 
 import request from "supertest";

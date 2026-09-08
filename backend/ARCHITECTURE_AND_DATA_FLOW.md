@@ -1,8 +1,8 @@
-# Amana Backend: Architecture & Data Flow
+# AgroPush Backend: Architecture & Data Flow
 
 ## Overview
 
-The Amana backend is a Node.js/TypeScript service providing REST APIs for escrow trade management, dispute resolution, and evidence handling on the Stellar/Soroban network. It acts as the orchestration layer between web/mobile clients and on-chain smart contracts.
+The AgroPush backend is a Node.js/TypeScript service providing REST APIs for escrow trade management, dispute resolution, and evidence handling on the Stellar/Soroban network. It acts as the orchestration layer between web/mobile clients and on-chain smart contracts.
 
 ## System Architecture
 
@@ -213,7 +213,7 @@ auditTrailEntries table:
    │
    ├─ ContractService.buildDepositTx()
    │   │
-   │   ├─ Get AMANA_ESCROW_CONTRACT_ID from env
+   │   ├─ Get AGROPUSH_ESCROW_CONTRACT_ID from env
    │   │
    │   ├─ Fetch buyer's account from Stellar
    │   │   └─ Use Soroban RPC or Horizon
@@ -375,7 +375,7 @@ pub struct EscrowState {
 STELLAR_NETWORK=testnet              # or "mainnet"
 STELLAR_NETWORK_PASSPHRASE=          # Auto-detected if empty
 STELLAR_RPC_URL=https://soroban-testnet.stellar.org
-AMANA_ESCROW_CONTRACT_ID=CAA...      # Deployed contract address
+AGROPUSH_ESCROW_CONTRACT_ID=CAA...      # Deployed contract address
 USDC_CONTRACT_ID=CBA...              # USDC token contract
 ```
 
@@ -427,12 +427,12 @@ stellar keys generate --network testnet
 
 # 3. Deploy contract (via soroban CLI)
 soroban contract deploy \
-  --wasm amana_escrow.wasm \
+  --wasm agropush_escrow.wasm \
   --network testnet \
   --source <keypair>
 
 # 4. Set contract address in .env.staging
-AMANA_ESCROW_CONTRACT_ID=<contract-address>
+AGROPUSH_ESCROW_CONTRACT_ID=<contract-address>
 
 # 5. Start event listener
 npm run dev
@@ -673,7 +673,7 @@ See `.env.staging.example` for full list. Key ones:
 
 ```bash
 NODE_ENV=staging
-DATABASE_URL=postgresql://user:pwd@postgres.staging:5432/amana
+DATABASE_URL=postgresql://user:pwd@postgres.staging:5432/agropush
 REDIS_URL=redis://redis.staging:6379/0
 JWT_SECRET=<32-char-minimum>
 STELLAR_NETWORK=testnet
@@ -699,7 +699,7 @@ CMD ["node", "dist/index.js"]
 1. **Find logs by correlation ID:**
 
    ```bash
-   grep "correlation_id=<id>" logs/amana-backend.log | jq .
+   grep "correlation_id=<id>" logs/agropush-backend.log | jq .
    ```
 
 2. **Check Stellar transaction status:**

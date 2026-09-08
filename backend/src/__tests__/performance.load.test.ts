@@ -68,7 +68,7 @@ const validBuyer = StellarSdk.Keypair.random().publicKey();
 
 function makeToken(walletAddress: string): string {
   return jwt.sign(
-    { walletAddress, jti: 'test-jti', iss: 'amana', aud: 'amana-api' },
+    { walletAddress, jti: 'test-jti', iss: 'agropush', aud: 'agropush-api' },
     JWT_SECRET
   );
 }

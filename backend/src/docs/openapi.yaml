@@ -1,9 +1,9 @@
 openapi: 3.0.0
 info:
-  title: Amana Backend API
+  title: AgroPush Backend API
   version: 1.0.0
   description: |-
-    OpenAPI coverage for the live Amana backend routes under `backend/src/routes`.
+    OpenAPI coverage for the live AgroPush backend routes under `backend/src/routes`.
 
     Authentication flow:
     1. Call `POST /auth/challenge` with a Stellar public key.
@@ -12,8 +12,8 @@ info:
     4. Send `Authorization: Bearer <token>` to protected endpoints.
 
     JWT semantics enforced by middleware:
-    - `iss` must match `JWT_ISSUER` (default `amana`)
-    - `aud` must match `JWT_AUDIENCE` (default `amana-api`)
+    - `iss` must match `JWT_ISSUER` (default `agropush`)
+    - `aud` must match `JWT_AUDIENCE` (default `agropush-api`)
     - `jti` is required and checked against the revocation denylist
     - `nbf` must be present and not be in the future
 
@@ -238,7 +238,7 @@ components:
           type: string
       required: [challenge]
       example:
-        challenge: amana:login:1742794421:7ced1c65a9a44a7d
+        challenge: agropush:login:1742794421:7ced1c65a9a44a7d
     AuthVerifyRequest:
       type: object
       properties:
@@ -424,7 +424,7 @@ components:
           format: uri
       additionalProperties: false
       example:
-        displayName: Amana Trader
+        displayName: AgroPush Trader
         avatarUrl: https://cdn.example.com/avatar.png
     TradeMutationRequest:
       type: object

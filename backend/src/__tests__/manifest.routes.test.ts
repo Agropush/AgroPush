@@ -15,8 +15,8 @@ describe("Manifest Routes", () => {
 
   beforeAll(() => {
     process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret-at-least-32-characters-long";
-    process.env.JWT_ISSUER = process.env.JWT_ISSUER || "amana";
-    process.env.JWT_AUDIENCE = process.env.JWT_AUDIENCE || "amana-api";
+    process.env.JWT_ISSUER = process.env.JWT_ISSUER || "agropush";
+    process.env.JWT_AUDIENCE = process.env.JWT_AUDIENCE || "agropush-api";
     const now = Math.floor(Date.now() / 1000);
     token = jwt.sign(
       {

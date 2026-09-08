@@ -17,7 +17,7 @@ export class TracedHttpClient {
   private axiosInstance: AxiosInstance;
   private serviceName: string;
 
-  constructor(baseURL?: string, serviceName = 'amana-backend') {
+  constructor(baseURL?: string, serviceName = 'agropush-backend') {
     this.serviceName = serviceName;
     this.axiosInstance = axios.create({
       baseURL,
