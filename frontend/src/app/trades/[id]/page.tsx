@@ -57,9 +57,11 @@ function InfoCard({
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
+    PENDING_SIGNATURE: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    CREATED: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     FUNDED: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-    PENDING: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-    SETTLED: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    DELIVERED: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    COMPLETED: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     DISPUTED: "bg-red-500/15 text-red-400 border-red-500/30",
     CANCELLED: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
   };
@@ -246,7 +248,7 @@ export default function TradeDetailPage() {
 
           {/* Financial summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <InfoCard title="Amount" value={`${trade.amountCngn} cNGN`} helper="Total trade value" />
+            <InfoCard title="Amount" value={`${trade.amountUsdc} cNGN`} helper="Total trade value" />
             <InfoCard title="Buyer" value={formatAddress(trade.buyerAddress)} helper="Buyer wallet address" />
             <InfoCard title="Seller" value={formatAddress(trade.sellerAddress)} helper="Seller wallet address" />
           </div>
@@ -281,7 +283,7 @@ export default function TradeDetailPage() {
             <div className="rounded-lg border border-border-default bg-bg-card p-5">
               <p className="text-xs uppercase tracking-wide text-text-muted mb-4">Actions</p>
               <div className="flex flex-wrap gap-3">
-                {role === "buyer" && status === "PENDING" && (
+                {role === "buyer" && status === "CREATED" && (
                   <button
                     onClick={handleDeposit}
                     disabled={actionLoading}
@@ -303,7 +305,7 @@ export default function TradeDetailPage() {
                   </button>
                 )}
 
-                {role === "seller" && (status === "FUNDED" || status === "CONFIRMED") && (
+                {role === "buyer" && status === "DELIVERED" && (
                   <button
                     onClick={handleReleaseFunds}
                     disabled={actionLoading}
@@ -339,7 +341,7 @@ export default function TradeDetailPage() {
                   <p className="text-sm text-text-muted">No actions available — you are not a party to this trade.</p>
                 )}
 
-                {(status === "SETTLED" || status === "CANCELLED") && (
+                {(status === "COMPLETED" || status === "CANCELLED") && (
                   <p className="text-sm text-text-muted">This trade is {status.toLowerCase()} and no further actions are available.</p>
                 )}
               </div>
