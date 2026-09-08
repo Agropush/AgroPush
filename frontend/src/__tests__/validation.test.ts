@@ -13,7 +13,7 @@ describe("TradeSchema", () => {
     tradeId: "trade-001",
     buyerAddress: "GABCDEF1234567890",
     sellerAddress: "GXYZABC9876543210",
-    amountCngn: "1000.50",
+    amountUsdc: "1000.50",
     buyerLossBps: 200,
     sellerLossBps: 300,
     status: "FUNDED",
@@ -26,7 +26,7 @@ describe("TradeSchema", () => {
   });
 
   it("accepts integer amounts", () => {
-    expect(() => TradeSchema.parse({ ...valid, amountCngn: "1000" })).not.toThrow();
+    expect(() => TradeSchema.parse({ ...valid, amountUsdc: "1000" })).not.toThrow();
   });
 
   it("rejects empty tradeId", () => {
@@ -37,13 +37,13 @@ describe("TradeSchema", () => {
     }
   });
 
-  it("rejects non-numeric amountCngn", () => {
-    const result = TradeSchema.safeParse({ ...valid, amountCngn: "not-a-number" });
+  it("rejects non-numeric amountUsdc", () => {
+    const result = TradeSchema.safeParse({ ...valid, amountUsdc: "not-a-number" });
     expect(result.success).toBe(false);
   });
 
-  it("rejects negative amountCngn", () => {
-    const result = TradeSchema.safeParse({ ...valid, amountCngn: "-50" });
+  it("rejects negative amountUsdc", () => {
+    const result = TradeSchema.safeParse({ ...valid, amountUsdc: "-50" });
     expect(result.success).toBe(false);
   });
 

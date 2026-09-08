@@ -85,7 +85,7 @@ const MOCK_TRADES = {
       tradeId: "trade-001",
       buyerAddress: "GBUYER0000000000000000000000000000000000000000000000000",
       sellerAddress: "GSELLER000000000000000000000000000000000000000000000000",
-      amountCngn: "10000",
+      amountUsdc: "10000",
       buyerLossBps: 100,
       sellerLossBps: 200,
       status: "FUNDED",

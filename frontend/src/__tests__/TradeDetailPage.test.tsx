@@ -68,7 +68,7 @@ function makeTrade(status: string, overrides = {}) {
     tradeId: "trade-123",
     buyerAddress: BUYER_ADDRESS,
     sellerAddress: SELLER_ADDRESS,
-    amountCngn: "5000",
+    amountUsdc: "5000",
     buyerLossBps: 100,
     sellerLossBps: 200,
     status,

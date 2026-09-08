@@ -13,7 +13,7 @@ const makeTrade = (tradeId: string, status = "active"): TradeResponse => ({
   tradeId,
   buyerAddress: "GBUYER",
   sellerAddress: "GSELLER",
-  amountCngn: "100",
+  amountUsdc: "100",
   buyerLossBps: 0,
   sellerLossBps: 0,
   status,

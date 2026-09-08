@@ -99,7 +99,7 @@ describe("Accessibility audit — WCAG 2.1 AA", () => {
       tradeId: "trade-001",
       commodity: "Crude Oil",
       counterparty: { role: "Buyer", address: "0x1234567890abcdef" },
-      amountCngn: "500,000",
+      amountUsdc: "500,000",
       status: "PENDING" as const,
       createdAt: "2026-06-01T10:00:00Z",
       onView: () => {},
