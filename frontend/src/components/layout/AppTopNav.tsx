@@ -2,26 +2,11 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { NavLink } from "@/components/ui/Navigation";
 import { useSidebarState } from "@/components/layout/SidebarStateProvider";
-import { useTranslation } from "@/hooks/useTranslation";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
-// #445 — include Trades so the canonical shell highlights the active route;
-// this eliminates the need for a redundant page-level title that duplicated
-// the navigation context.
-const TOP_NAV_KEYS = [
-  { href: "/dashboard", labelKey: "nav.dashboard" },
-  { href: "/trades", labelKey: "nav.trades" },
-  { href: "/assets", labelKey: "nav.assets" },
-  { href: "/vault", labelKey: "nav.vault" },
-];
-
 export function AppTopNav() {
-  const pathname = usePathname();
   const { isOpen, toggle } = useSidebarState();
-  const { t } = useTranslation();
 
   return (
     <header className="h-14 bg-card border-b border-border-default flex items-center px-4 lg:px-6 gap-4 lg:gap-8 flex-shrink-0">
@@ -53,18 +38,6 @@ export function AppTopNav() {
       <Link href="/" className="text-gold font-bold text-lg tracking-tight flex-shrink-0">
         Amana
       </Link>
-
-      {/* Nav links */}
-      <nav className="flex items-center gap-1" aria-label="Main navigation">
-        {TOP_NAV_KEYS.map((item) => {
-          const isActive = pathname?.startsWith(item.href);
-          return (
-            <NavLink key={item.href} href={item.href} isActive={isActive}>
-              {t(item.labelKey)}
-            </NavLink>
-          );
-        })}
-      </nav>
 
       {/* Right side */}
       <div className="ml-auto flex items-center gap-3">
