@@ -1,6 +1,6 @@
-# amana_escrow
+# agropush_escrow
 
-This crate contains the Soroban escrow contract used by Amana.
+This crate contains the Soroban escrow contract used by AgroPush.
 
 ## cNGN migration and upgrade notes
 
@@ -56,7 +56,7 @@ cargo test
 
 ## Local deployment
 
-`contracts/deploy-local.sh` builds the `amana_escrow` wasm artifact and
+`contracts/deploy-local.sh` builds the `agropush_escrow` wasm artifact and
 deploys (or upgrades) it against a local Soroban network for manual testing.
 
 ```bash

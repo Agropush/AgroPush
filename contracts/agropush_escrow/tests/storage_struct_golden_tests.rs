@@ -10,7 +10,7 @@
 /// To regenerate, run tests normally — the assertions are self-consistent.
 extern crate std;
 
-use amana_escrow::{
+use agropush_escrow::{
     DataKey, DeliveryManifestRecord, DisputeRecord, EvidenceRecord, PathPaymentIntent,
     ReleaseSequence, TradeData, TradeEvent, TradeStatus, TradeV0, VideoProofRecord,
 };

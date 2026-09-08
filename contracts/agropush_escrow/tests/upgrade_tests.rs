@@ -15,7 +15,7 @@
 
 extern crate std;
 
-use amana_escrow::{
+use agropush_escrow::{
     DisputeRecord, EscrowContract, EscrowContractClient, EvidenceRecord, TradeStatus,
 };
 use soroban_sdk::{

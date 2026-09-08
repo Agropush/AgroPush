@@ -1,8 +1,8 @@
-$f = "C:\Users\machintosh\Documents\files\Amana1\contracts\amana_escrow\tests\dispute_flow.rs"
+$f = "C:\Users\machintosh\Documents\files\AgroPush1\contracts\agropush_escrow\tests\dispute_flow.rs"
 $lines = [System.Collections.Generic.List[string]]::new()
 
 $lines.Add('extern crate std;')
-$lines.Add('use amana_escrow::{DataKey, EscrowContract, EscrowContractClient, TradeStatus};')
+$lines.Add('use agropush_escrow::{DataKey, EscrowContract, EscrowContractClient, TradeStatus};')
 $lines.Add('use soroban_sdk::{')
 $lines.Add('    contract, contractimpl, contracttype,')
 $lines.Add('    testutils::{Address as _, Ledger},')

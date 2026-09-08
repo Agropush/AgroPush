@@ -1,4 +1,4 @@
-# amana_escrow — Security assumptions & upgrade path
+# agropush_escrow — Security assumptions & upgrade path
 
 This document records the trust model the escrow contract relies on and the
 supported path for upgrading storage. It complements the migration notes in

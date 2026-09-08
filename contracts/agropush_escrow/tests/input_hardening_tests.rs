@@ -5,7 +5,7 @@
 //! (including a payload at exactly the length bound) continue to succeed.
 extern crate std;
 
-use amana_escrow::{EscrowContract, EscrowContractClient, MAX_HASH_LEN};
+use agropush_escrow::{EscrowContract, EscrowContractClient, MAX_HASH_LEN};
 use soroban_sdk::{
     Address, Env, String as SorobanString, contract, contractimpl, contracttype,
     testutils::{Address as _, Ledger},

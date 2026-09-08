@@ -56,7 +56,7 @@ fn checked_loss_amount(total: i128, loss_bps: i128, seller_loss_bps: u32) -> i12
 // Constants
 // ---------------------------------------------------------------------------
 
-#[contractevent(topics = ["amana", "initialized"])]
+#[contractevent(topics = ["agropush", "initialized"])]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InitializedEvent {
     pub admin: Address,
@@ -250,7 +250,7 @@ pub struct PathPaymentExecutedEvent {
 }
 
 /// Emitted when an upgrade proposal is created by an admin.
-#[contractevent(topics = ["amana", "UPGPRP"])]
+#[contractevent(topics = ["agropush", "UPGPRP"])]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UpgradeProposedEvent {
     pub proposal_id: u32,
@@ -259,7 +259,7 @@ pub struct UpgradeProposedEvent {
 }
 
 /// Emitted when an admin set change is proposed.
-#[contractevent(topics = ["amana", "ADMPRP"])]
+#[contractevent(topics = ["agropush", "ADMPRP"])]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AdminChangeProposedEvent {
     pub proposal_id: u32,
@@ -269,7 +269,7 @@ pub struct AdminChangeProposedEvent {
 }
 
 /// Emitted when an admin approves a proposal.
-#[contractevent(topics = ["amana", "APRPRP"])]
+#[contractevent(topics = ["agropush", "APRPRP"])]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AdminApprovalEvent {
     pub proposal_id: u32,
@@ -277,7 +277,7 @@ pub struct AdminApprovalEvent {
 }
 
 /// Emitted when an admin set change is executed (threshold reached).
-#[contractevent(topics = ["amana", "ADMEXE"])]
+#[contractevent(topics = ["agropush", "ADMEXE"])]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AdminChangeExecutedEvent {
     pub proposal_id: u32,
