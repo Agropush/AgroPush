@@ -12,3 +12,8 @@ scripts/staging-up.sh:database-url-with-password:68
 scripts/staging-validate.sh:database-url-with-password:16
 scripts/migrate-safe.sh:database-url-with-password:40
 scripts/migrate-rollback.sh:database-url-with-password:48
+
+# Well-known local-only demo Stellar keypair (see comment at that line) —
+# funds-less, network-less, used only to sign in as the demo admin/mediator
+# role for backend/scripts/demo-smoke-test.ts. Not a real secret.
+backend/scripts/demo-smoke-test.ts:stellar-secret-key:28
