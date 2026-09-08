@@ -37,7 +37,7 @@ export default function Step3Review() {
 
   const total = !isNaN(rawAmount) && rawAmount > 0 ? rawAmount.toLocaleString("en-NG") : "—";
 
-  const amountCngn = !isNaN(rawAmount) && rawAmount > 0 ? rawAmount.toFixed(7) : "0";
+  const amountUsdc = !isNaN(rawAmount) && rawAmount > 0 ? rawAmount.toFixed(7) : "0";
 
   const isAddressValid =
     data.sellerAddress !== "" &&
@@ -77,7 +77,7 @@ export default function Step3Review() {
     try {
       const createResponse = await api.trades.create(token, {
         sellerAddress: data.sellerAddress,
-        amountCngn,
+        amountUsdc,
         buyerLossBps,
         sellerLossBps,
       });
@@ -94,25 +94,33 @@ export default function Step3Review() {
 
       const signedXdr = signResult.signedTxXdr;
 
-      const rpcUrl = apiConfig.getStellarRpcUrl();
-      const submitResponse = await fetch(rpcUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "sendTransaction",
-          params: { transaction: signedXdr },
-        }),
-      });
+      if (apiConfig.isDemoMode()) {
+        // Demo mode's backend returns placeholder XDRs (no deployed contract
+        // required), which can never submit successfully to a live Stellar
+        // RPC. Chain confirmation is simulated server-side instead, so a
+        // successful sign is the demo's terminal step.
+        setTxHash("demo-mode (no live chain submission)");
+      } else {
+        const rpcUrl = apiConfig.getStellarRpcUrl();
+        const submitResponse = await fetch(rpcUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "sendTransaction",
+            params: { transaction: signedXdr },
+          }),
+        });
 
-      const submitResult = await submitResponse.json();
+        const submitResult = await submitResponse.json();
 
-      if (submitResult.error) {
-        throw new Error(submitResult.error.message || "Transaction submission failed");
+        if (submitResult.error) {
+          throw new Error(submitResult.error.message || "Transaction submission failed");
+        }
+
+        setTxHash(submitResult.result?.hash || createResponse.tradeId);
       }
-
-      setTxHash(submitResult.result?.hash || createResponse.tradeId);
     } catch (err) {
       let errorMessage = "Transaction failed. Please try again.";
       if (err instanceof ApiError) {
@@ -203,7 +211,7 @@ export default function Step3Review() {
         <ReviewRow label="Quantity" value={`${data.quantity} ${data.unit}`} />
         <ReviewRow label="Price per unit" value={`${data.currency} ${data.pricePerUnit}`} />
         <ReviewRow label="Total Value" value={`${data.currency} ${total}`} />
-        <ReviewRow label="USDC Amount" value={`${amountCngn} cNGN`} />
+        <ReviewRow label="USDC Amount" value={`${amountUsdc} cNGN`} />
         <ReviewRow label="Seller Address" value={data.sellerAddress} />
         <ReviewRow label="Loss Ratio" value={`Buyer ${data.buyerRatio}% / Seller ${data.sellerRatio}%`} />
         <ReviewRow label="Delivery Window" value={`${data.deliveryDays} days`} />
@@ -212,7 +220,7 @@ export default function Step3Review() {
 
       <div className="rounded-lg bg-gold-muted border border-gold/20 px-4 py-3 text-sm text-gold">
         By submitting, you authorize a Stellar transaction to create an escrow trade,
-        locking {amountCngn} cNGN in the Amana escrow contract.
+        locking {amountUsdc} cNGN in the Amana escrow contract.
       </div>
 
       {error && (
@@ -224,7 +232,7 @@ export default function Step3Review() {
         onAccept={handleDisclaimerAccept}
         onDecline={() => setShowDisclaimer(false)}
         lossRatio={{ buyer: data.buyerRatio * 100, seller: data.sellerRatio * 100 }}
-        tradeValueCngn={amountCngn}
+        tradeValueCngn={amountUsdc}
       />
 
       <div className="flex gap-3">

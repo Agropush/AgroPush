@@ -18,3 +18,14 @@ export function getStellarNetworkPassphrase(): string {
     "Test SDF Network ; September 2015"
   );
 }
+
+/**
+ * Mirrors the backend's DEMO_MODE: the backend returns placeholder XDRs
+ * (no deployed contract required), so real transactions built off them
+ * can never submit successfully to the live Stellar RPC. In demo mode,
+ * chain confirmation is simulated server-side (an admin transitions trade
+ * status directly) rather than by a real network submission.
+ */
+export function isDemoMode(): boolean {
+  return process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+}
