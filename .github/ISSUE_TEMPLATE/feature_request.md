@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest an idea, enhancement, or new feature for Amana
+about: Suggest an idea, enhancement, or new feature for AgroPush
 title: '[FEAT] '
 labels: enhancement
 assignees: ''

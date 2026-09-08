@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Create a report to help us reproduce and fix a bug in Amana
+about: Create a report to help us reproduce and fix a bug in AgroPush
 title: '[BUG] '
 labels: bug
 assignees: ''
