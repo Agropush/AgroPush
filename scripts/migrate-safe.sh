@@ -37,11 +37,11 @@ if [[ -f "$ROOT_DIR/.env.$ENV" ]]; then
   set -o allexport; source "$ROOT_DIR/.env.$ENV"; set +o allexport
 fi
 
-DB_URL="${DATABASE_URL:-postgresql://postgres:password@localhost:5432/amana}"
+DB_URL="${DATABASE_URL:-postgresql://postgres:password@localhost:5432/agropush}"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
-echo "  Amana — Migration Safety Checks  (env: $ENV)"
+echo "  AgroPush — Migration Safety Checks  (env: $ENV)"
 echo "═══════════════════════════════════════════════════════════════"
 
 WARNINGS=0

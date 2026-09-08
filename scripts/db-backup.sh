@@ -39,7 +39,7 @@ fi
 
 S3_PREFIX="${S3_PREFIX:-backups}"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-FILENAME="amana-${BACKUP_TYPE}-${TIMESTAMP}.sql.gz.gpg"
+FILENAME="agropush-${BACKUP_TYPE}-${TIMESTAMP}.sql.gz.gpg"
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 

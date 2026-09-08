@@ -9,7 +9,7 @@ mkdir -p "$REPORT_DIR"
 
 FAILED=0
 
-echo "=== Amana Security Scan ===" | tee "$REPORT_DIR/summary.txt"
+echo "=== AgroPush Security Scan ===" | tee "$REPORT_DIR/summary.txt"
 date | tee -a "$REPORT_DIR/summary.txt"
 echo "" | tee -a "$REPORT_DIR/summary.txt"
 
@@ -60,7 +60,7 @@ fi
 
 # Trivy Docker image scan (optional — only if images are built)
 if command -v trivy &>/dev/null && command -v docker &>/dev/null; then
-  for image in $(docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -E '^amana' || true); do
+  for image in $(docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -E '^agropush' || true); do
     run_step "trivy image $image" \
       trivy image --exit-code 1 --severity HIGH,CRITICAL "$image"
   done
