@@ -1,6 +1,6 @@
-# Amana Backend Reliability Layer
+# AgroPush Backend Reliability Layer
 
-This document describes the reliability features implemented in the Amana API.
+This document describes the reliability features implemented in the AgroPush API.
 
 ## 1. Schema Validation Coverage
 

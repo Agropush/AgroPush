@@ -1,6 +1,6 @@
 # Secrets Policy
 
-This document describes how Amana prevents accidental secret exposure and what to do when a secret is detected in the repository.
+This document describes how AgroPush prevents accidental secret exposure and what to do when a secret is detected in the repository.
 
 ---
 

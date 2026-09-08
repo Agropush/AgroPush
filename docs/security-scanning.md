@@ -1,6 +1,6 @@
 # Security Scanning
 
-Amana runs automated dependency vulnerability scanning on every CI run and provides a local script for ad-hoc scans.
+AgroPush runs automated dependency vulnerability scanning on every CI run and provides a local script for ad-hoc scans.
 
 ## CI Pipeline
 

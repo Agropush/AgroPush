@@ -1,8 +1,8 @@
-# Amana System Architecture
+# AgroPush System Architecture
 
 ## Overview
 
-Amana is a decentralized financial escrow platform built on Stellar blockchain. The system architecture follows a three-tier model with frontend, backend, and smart contracts.
+AgroPush is a decentralized financial escrow platform built on Stellar blockchain. The system architecture follows a three-tier model with frontend, backend, and smart contracts.
 
 ## High-Level Architecture Diagram
 
@@ -21,7 +21,7 @@ Amana is a decentralized financial escrow platform built on Stellar blockchain. 
                     HTTPS (REST/JSON)
                            │
 ┌──────────────────────────┴──────────────────────────────────────────┐
-│                    Amana Backend (Node.js)                           │
+│                    AgroPush Backend (Node.js)                           │
 │  ┌────────────────────────────────────────────────────────────┐   │
 │  │ API Gateway & Express Middleware                          │   │
 │  │ - JWT Authentication & Authorization                      │   │
