@@ -128,13 +128,24 @@ normally does once a wallet signs and submits each transaction.
    real challenge/signature auth (freshly generated Stellar keypairs) and
    prints a pass/fail checklist — 12/12 on a clean setup.
 4. **Optional — see it in the UI:** with the backend running, start the
-   frontend (`cd frontend && cp .env.example .env.local && pnpm install &&
-   pnpm run dev`) and open `http://localhost:3000/trades/create`. The
-   wizard is wired to the same backend and API contract the smoke test
-   exercises. Completing a trade fully in the browser still requires a
-   Freighter wallet and signable transactions, which `DEMO_MODE`'s
-   placeholder XDRs don't provide — the smoke test is the authoritative,
-   fully-automated proof that the lifecycle works.
+   frontend:
+   ```bash
+   cd frontend
+   cp .env.example .env.local
+   echo 'NEXT_PUBLIC_DEMO_MODE=true' >> .env.local
+   pnpm install
+   pnpm run dev
+   ```
+   Open `http://localhost:3000/trades/create` with a
+   [Freighter](https://www.freighter.app/) wallet installed (any funded or
+   unfunded testnet keypair works — no real signing is submitted anywhere).
+   `NEXT_PUBLIC_DEMO_MODE=true` skips the one step that can't work without a
+   deployed contract — submitting the signed transaction to the live Stellar
+   RPC — and treats a successful sign as the terminal step, matching how the
+   backend already simulates chain confirmation via its admin endpoint. The
+   full lifecycle (create → deposit → confirm → release) is clickable
+   end-to-end in the browser this way; the smoke test remains the
+   fully-automated, no-browser proof.
 
 **What this demonstrates:** the real trade lifecycle state machine, auth,
 and Postgres persistence all work correctly end-to-end. **What's stubbed:**
