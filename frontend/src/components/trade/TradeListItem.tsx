@@ -8,7 +8,7 @@ export interface TradeListItemProps {
   tradeId: string;
   commodity: string;
   counterparty: { role: string; address: string };
-  amountCngn: string;
+  amountUsdc: string;
   status: TradeStatus;
   createdAt: string;
   onView: () => void;
@@ -35,7 +35,7 @@ export function TradeListItem({
   tradeId,
   commodity,
   counterparty,
-  amountCngn,
+  amountUsdc,
   status,
   createdAt,
   onView,
@@ -74,7 +74,7 @@ export function TradeListItem({
       >
         <div className="hidden sm:flex flex-col items-end gap-1">
           <span className="text-text-primary font-semibold text-sm">
-            {amountCngn}{" "}
+            {amountUsdc}{" "}
             <span className="text-text-muted font-normal">cNGN</span>
           </span>
           <span className="text-text-muted text-xs">{createdAt}</span>

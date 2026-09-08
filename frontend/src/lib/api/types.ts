@@ -10,7 +10,7 @@ export interface TradeResponse {
   tradeId: string;
   buyerAddress: string;
   sellerAddress: string;
-  amountCngn: string;
+  amountUsdc: string;
   buyerLossBps: number;
   sellerLossBps: number;
   status: string;
@@ -61,7 +61,7 @@ export interface EvidenceResponse {
 
 export interface CreateTradeRequest {
   sellerAddress: string;
-  amountCngn: string;
+  amountUsdc: string;
   buyerLossBps: number;
   sellerLossBps: number;
 }

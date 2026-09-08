@@ -1,7 +1,7 @@
 "use client";
 
 interface TradeAmountRowProps {
-  amountCngn: string | number;
+  amountUsdc: string | number;
   amountLocal?: string | number;
   currencyLocal?: "NGN" | "XLM";
   label?: string;
@@ -30,7 +30,7 @@ function formatLocalAmount(
 }
 
 export function TradeAmountRow({
-  amountCngn,
+  amountUsdc,
   amountLocal,
   currencyLocal = "NGN",
   label = "Total Trade Value",
@@ -46,7 +46,7 @@ export function TradeAmountRow({
               highlighted ? "text-gold" : "text-text-primary"
             }`}
           >
-            {formatValue(amountCngn)}
+            {formatValue(amountUsdc)}
           </p>
           <span className="text-lg font-semibold text-text-muted">cNGN</span>
         </div>

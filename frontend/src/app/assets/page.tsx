@@ -415,7 +415,7 @@ function AssetTable({
                 </div>
 
                 <p className="text-sm font-semibold text-text-primary tabular-nums">
-                  {parseFloat(trade.amountCngn).toLocaleString()}
+                  {parseFloat(trade.amountUsdc).toLocaleString()}
                 </p>
 
                 <p className="text-sm text-text-secondary font-mono truncate">

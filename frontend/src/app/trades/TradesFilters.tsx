@@ -341,7 +341,7 @@ export function TradesFilters({ initialStatus, initialPage }: TradesFiltersProps
                         {formatAddress(trade.sellerAddress)}
                       </td>
                       <td className="px-4 py-3 text-text-primary">
-                        {trade.amountCngn} cNGN
+                        {trade.amountUsdc} cNGN
                       </td>
                       <td className="px-4 py-3">
                         <span

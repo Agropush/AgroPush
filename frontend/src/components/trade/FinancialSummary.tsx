@@ -50,7 +50,7 @@ export function FinancialSummary({ trade }: FinancialSummaryProps) {
       </div>
 
       <TradeAmountRow
-        amountCngn={trade.vaultAmountLocked}
+        amountUsdc={trade.vaultAmountLocked}
         amountLocal={ngnEquivalent}
         currencyLocal="NGN"
         label="Vault Amount Locked"

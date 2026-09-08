@@ -159,8 +159,8 @@ function ConfirmModal({
   };
 
   const descriptions: Record<NonNullable<ActionModal>["type"], string> = {
-    deposit: `Deposit ${modal.trade.amountCngn} cNGN into escrow for trade ${modal.trade.tradeId.slice(0, 8)}…`,
-    release: `Release ${modal.trade.amountCngn} cNGN to the seller for trade ${modal.trade.tradeId.slice(0, 8)}…`,
+    deposit: `Deposit ${modal.trade.amountUsdc} cNGN into escrow for trade ${modal.trade.tradeId.slice(0, 8)}…`,
+    release: `Release ${modal.trade.amountUsdc} cNGN to the seller for trade ${modal.trade.tradeId.slice(0, 8)}…`,
     dispute: `Open a dispute for trade ${modal.trade.tradeId.slice(0, 8)}…`,
   };
 
@@ -393,7 +393,7 @@ export default function VaultManagePage() {
 
   const totalLocked = trades
     .filter((t) => ["active", "locked"].includes(t.status.toLowerCase()))
-    .reduce((sum, t) => sum + parseFloat(t.amountCngn), 0);
+    .reduce((sum, t) => sum + parseFloat(t.amountUsdc), 0);
 
   // Actions
   async function handleConfirm() {
@@ -696,7 +696,7 @@ export default function VaultManagePage() {
                           {/* Amount */}
                           <div>
                             <p className="text-sm font-semibold text-text-primary">
-                              {parseFloat(trade.amountCngn).toLocaleString()}{" "}
+                              {parseFloat(trade.amountUsdc).toLocaleString()}{" "}
                               cNGN
                             </p>
                             <p className="text-xs text-text-muted mt-0.5">

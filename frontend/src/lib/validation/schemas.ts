@@ -4,7 +4,7 @@ export const TradeSchema = z.object({
   tradeId: z.string().min(1, "Trade ID is required"),
   buyerAddress: z.string().min(1, "Buyer address is required"),
   sellerAddress: z.string().min(1, "Seller address is required"),
-  amountCngn: z
+  amountUsdc: z
     .string()
     .regex(/^\d+(\.\d+)?$/, "Amount must be a valid positive number"),
   buyerLossBps: z

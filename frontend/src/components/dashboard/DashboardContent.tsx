@@ -246,7 +246,7 @@ export function DashboardContent() {
                         {trade.sellerAddress.substring(0, 6)}...{trade.sellerAddress.substring(trade.sellerAddress.length - 4)}
                       </td>
                       <td className="px-6 py-4 text-text-primary font-medium">
-                        {trade.amountCngn} cNGN
+                        {trade.amountUsdc} cNGN
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 text-xs font-medium rounded-full capitalize
