@@ -162,7 +162,7 @@ describe("Trade Detail — error state", () => {
 // ── Status display ─────────────────────────────────────────────────────────────
 
 describe("Trade Detail — trade status display", () => {
-  it.each(["PENDING", "FUNDED", "SETTLED", "DISPUTED", "CANCELLED"])(
+  it.each(["PENDING_SIGNATURE", "CREATED", "FUNDED", "DELIVERED", "COMPLETED", "DISPUTED", "CANCELLED"])(
     "shows %s status badge",
     (status) => {
       mockAuth(BUYER_ADDRESS);
@@ -181,10 +181,10 @@ describe("Trade Detail — trade status display", () => {
 // ── Role-based button visibility ───────────────────────────────────────────────
 
 describe("Trade Detail — role-based action buttons", () => {
-  it("shows Deposit button for buyer in PENDING status", () => {
+  it("shows Deposit button for buyer in CREATED status", () => {
     mockAuth(BUYER_ADDRESS);
     mockUseTradeDetail.mockReturnValue({
-      trade: makeTrade("PENDING"),
+      trade: makeTrade("CREATED"),
       loading: false,
       error: null,
       refetch: jest.fn(),
@@ -193,10 +193,10 @@ describe("Trade Detail — role-based action buttons", () => {
     expect(screen.getByTestId("action-deposit")).toBeInTheDocument();
   });
 
-  it("does NOT show Deposit button for seller in PENDING status", () => {
+  it("does NOT show Deposit button for seller in CREATED status", () => {
     mockAuth(SELLER_ADDRESS);
     mockUseTradeDetail.mockReturnValue({
-      trade: makeTrade("PENDING"),
+      trade: makeTrade("CREATED"),
       loading: false,
       error: null,
       refetch: jest.fn(),
@@ -217,16 +217,28 @@ describe("Trade Detail — role-based action buttons", () => {
     expect(screen.getByTestId("action-confirm-delivery")).toBeInTheDocument();
   });
 
-  it("shows Release Funds for seller in FUNDED status", () => {
-    mockAuth(SELLER_ADDRESS);
+  it("shows Release Funds for buyer in DELIVERED status", () => {
+    mockAuth(BUYER_ADDRESS);
     mockUseTradeDetail.mockReturnValue({
-      trade: makeTrade("FUNDED"),
+      trade: makeTrade("DELIVERED"),
       loading: false,
       error: null,
       refetch: jest.fn(),
     });
     render(<TradeDetailPage />);
     expect(screen.getByTestId("action-release-funds")).toBeInTheDocument();
+  });
+
+  it("does NOT show Release Funds for seller in DELIVERED status", () => {
+    mockAuth(SELLER_ADDRESS);
+    mockUseTradeDetail.mockReturnValue({
+      trade: makeTrade("DELIVERED"),
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+    render(<TradeDetailPage />);
+    expect(screen.queryByTestId("action-release-funds")).not.toBeInTheDocument();
   });
 
   it("shows Initiate Dispute for buyer in FUNDED status", () => {
@@ -268,10 +280,10 @@ describe("Trade Detail — role-based action buttons", () => {
     expect(screen.getByText(/not a party to this trade/i)).toBeInTheDocument();
   });
 
-  it("shows settled message for SETTLED status", () => {
+  it("shows completed message for COMPLETED status", () => {
     mockAuth(BUYER_ADDRESS);
     mockUseTradeDetail.mockReturnValue({
-      trade: makeTrade("SETTLED"),
+      trade: makeTrade("COMPLETED"),
       loading: false,
       error: null,
       refetch: jest.fn(),
@@ -287,7 +299,7 @@ describe("Trade Detail — Freighter signing flow", () => {
   it("calls deposit API and signTransaction when Deposit is clicked", async () => {
     mockAuth(BUYER_ADDRESS);
     mockUseTradeDetail.mockReturnValue({
-      trade: makeTrade("PENDING"),
+      trade: makeTrade("CREATED"),
       loading: false,
       error: null,
       refetch: jest.fn(),
@@ -307,7 +319,7 @@ describe("Trade Detail — Freighter signing flow", () => {
   it("shows success message after successful signing", async () => {
     mockAuth(BUYER_ADDRESS);
     mockUseTradeDetail.mockReturnValue({
-      trade: makeTrade("PENDING"),
+      trade: makeTrade("CREATED"),
       loading: false,
       error: null,
       refetch: jest.fn(),
@@ -325,7 +337,7 @@ describe("Trade Detail — Freighter signing flow", () => {
   it("shows error message when signTransaction fails", async () => {
     mockAuth(BUYER_ADDRESS);
     mockUseTradeDetail.mockReturnValue({
-      trade: makeTrade("PENDING"),
+      trade: makeTrade("CREATED"),
       loading: false,
       error: null,
       refetch: jest.fn(),
@@ -360,9 +372,9 @@ describe("Trade Detail — Freighter signing flow", () => {
   });
 
   it("calls releaseFunds API when Release Funds is clicked", async () => {
-    mockAuth(SELLER_ADDRESS);
+    mockAuth(BUYER_ADDRESS);
     mockUseTradeDetail.mockReturnValue({
-      trade: makeTrade("FUNDED"),
+      trade: makeTrade("DELIVERED"),
       loading: false,
       error: null,
       refetch: jest.fn(),

@@ -60,7 +60,7 @@ function mockBackendResponse(body: unknown, init: ResponseInit = {}) {
   } as unknown as Response;
 }
 
-function tradeResponse(status = "PENDING") {
+function tradeResponse(status = "CREATED") {
   return {
     tradeId: "trade-123",
     buyerAddress: BUYER_ADDRESS,
