@@ -55,13 +55,13 @@ export function LegalDisclaimerModal({
               <div className="flex justify-between items-center">
                 <span>Buyer bears:</span>
                 <span className="font-bold">
-                  {(buyerPercentage * 100).toFixed(0)}%
+                  {buyerPercentage.toFixed(0)}%
                 </span>
               </div>
               <div className="flex justify-between items-center mt-2">
                 <span>Seller bears:</span>
                 <span className="font-bold">
-                  {(sellerPercentage * 100).toFixed(0)}%
+                  {sellerPercentage.toFixed(0)}%
                 </span>
               </div>
             </div>
