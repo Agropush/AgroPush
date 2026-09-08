@@ -17,15 +17,43 @@ import { NextRequest, NextResponse } from "next/server";
  * directives is left as a follow-up if broader monitoring before enforcing
  * is wanted.
  */
+function originOf(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
 export function proxy(request: NextRequest) {
   const nonce = crypto.randomUUID().replace(/-/g, "");
+
+  // The app calls its own backend (NEXT_PUBLIC_API_URL) and the Soroban RPC
+  // (NEXT_PUBLIC_STELLAR_RPC_URL / NEXT_PUBLIC_RPC_URL) directly from the
+  // browser — both must be allowlisted or every API/RPC call is silently
+  // blocked by the browser regardless of what the app code does.
+  const dynamicConnectSrc = new Set(
+    [
+      originOf(process.env.NEXT_PUBLIC_API_URL),
+      originOf(process.env.NEXT_PUBLIC_STELLAR_RPC_URL),
+      originOf(process.env.NEXT_PUBLIC_RPC_URL),
+    ].filter((origin): origin is string => Boolean(origin)),
+  );
 
   const csp = [
     `default-src 'self'`,
     `script-src 'self' 'strict-dynamic' 'nonce-${nonce}'`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: https://ipfs.io https://*.pinata.cloud`,
-    `connect-src 'self' https://api.stellar.org https://horizon.stellar.org https://horizon-testnet.stellar.org`,
+    [
+      `connect-src 'self'`,
+      `https://api.stellar.org`,
+      `https://horizon.stellar.org`,
+      `https://horizon-testnet.stellar.org`,
+      `https://soroban-testnet.stellar.org`,
+      ...dynamicConnectSrc,
+    ].join(" "),
     `frame-src 'none'`,
     `object-src 'none'`,
     `base-uri 'self'`,
