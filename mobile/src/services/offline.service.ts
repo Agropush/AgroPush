@@ -8,7 +8,7 @@ let db: SQLite.SQLiteDatabase | null = null;
 
 export const initDb = async (): Promise<SQLite.SQLiteDatabase> => {
   if (!db) {
-    db = await SQLite.openDatabaseAsync('amana_offline.db');
+    db = await SQLite.openDatabaseAsync('agropush_offline.db');
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS trades (
         id TEXT PRIMARY KEY,

@@ -3,20 +3,20 @@
     "requireCommit": true
   },
   "expo": {
-    "name": "Amana",
-    "slug": "amana-mobile",
+    "name": "AgroPush",
+    "slug": "agropush-mobile",
     "version": "0.1.0",
-    "scheme": "amanavault",
+    "scheme": "agropushvault",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTabletMode": true,
-      "scheme": "amanavault",
+      "scheme": "agropushvault",
       "infoPlist": {
-        "NSLocalNetworkUsageDescription": "Amana uses local network to communicate with backend services",
-        "NSBonjourServiceTypes": ["_amana._tcp"]
+        "NSLocalNetworkUsageDescription": "AgroPush uses local network to communicate with backend services",
+        "NSBonjourServiceTypes": ["_agropush._tcp"]
       }
     },
     "android": {
@@ -24,23 +24,23 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "scheme": "amanavault",
+      "scheme": "agropushvault",
       "intentFilters": [
         {
           "action": "VIEW",
           "data": [
             {
               "scheme": "https",
-              "host": "amanavault.app",
+              "host": "agropushvault.app",
               "pathPrefix": "/trades"
             },
             {
               "scheme": "https",
-              "host": "amanavault.app",
+              "host": "agropushvault.app",
               "pathPrefix": "/disputes"
             },
             {
-              "scheme": "amanavault"
+              "scheme": "agropushvault"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
@@ -64,7 +64,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "amana-mobile-project-id"
+        "projectId": "agropush-mobile-project-id"
       }
     }
   }

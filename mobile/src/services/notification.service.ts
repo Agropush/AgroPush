@@ -2,8 +2,8 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-const PUSH_TOKEN_KEY = "amana_push_token";
-const OPT_IN_PREFERENCE_KEY = "amana_notification_opt_in";
+const PUSH_TOKEN_KEY = "agropush_push_token";
+const OPT_IN_PREFERENCE_KEY = "agropush_notification_opt_in";
 
 export type NotificationOptInPreference = "granted" | "denied" | "unset";
 
@@ -158,7 +158,7 @@ export async function storePushTokenOnBackend(
 ): Promise<boolean> {
   try {
     const response = await fetch(
-      "https://api.amana.io/user/push-token",
+      "https://api.agropush.io/user/push-token",
       {
         method: "POST",
         headers: {

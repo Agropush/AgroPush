@@ -1,12 +1,12 @@
-# 🌾 Amana Mobile
+# 🌾 AgroPush Mobile
 
-This folder contains the official React Native mobile client for **Amana**, a decentralized escrow protocol designed to secure agricultural trade across different regions.
+This folder contains the official React Native mobile client for **AgroPush**, a decentralized escrow protocol designed to secure agricultural trade across different regions.
 
-Amana eliminates the "Trust Gap" between buyers and sellers using Soroban Smart Contracts on the Stellar network, ensuring fair trade even when parties are hundreds of miles apart.
+AgroPush eliminates the "Trust Gap" between buyers and sellers using Soroban Smart Contracts on the Stellar network, ensuring fair trade even when parties are hundreds of miles apart.
 
-## About Amana
+## About AgroPush
 
-**Amana** provides a programmable safety net for regional commodity trading:
+**AgroPush** provides a programmable safety net for regional commodity trading:
 
 - **Smart Escrow**: Secure funds holding using cNGN/stablecoins on the Stellar network
 - **Dynamic Loss Sharing**: Negotiable risk-sharing ratios (e.g., 50/50, 70/30) for handling transit accidents
@@ -101,7 +101,7 @@ npm run lint
 
 ## Backend integration
 
-This mobile client integrates with the Amana backend API described in the monorepo documentation.
+This mobile client integrates with the AgroPush backend API described in the monorepo documentation.
 
 ## Notes
 

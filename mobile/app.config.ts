@@ -2,10 +2,10 @@ import { ExpoConfig, getDefaultConfig } from 'expo/config';
 
 const config: ExpoConfig = {
   ...getDefaultConfig(__dirname),
-  name: 'Amana',
-  slug: 'amana-mobile',
+  name: 'AgroPush',
+  slug: 'agropush-mobile',
   version: '0.1.0',
-  scheme: 'amana',
+  scheme: 'agropush',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
@@ -13,10 +13,10 @@ const config: ExpoConfig = {
   entryPoint: './src/index.tsx',
   ios: {
     supportsTabletMode: true,
-    bundleIdentifier: 'com.amana.mobile',
+    bundleIdentifier: 'com.agropush.mobile',
   },
   android: {
-    package: 'com.amana.mobile',
+    package: 'com.agropush.mobile',
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#ffffff',
