@@ -14,7 +14,7 @@ export const useLocaleStore = create<LocaleState>()(
       setLocale: (locale) => set({ locale }),
     }),
     {
-      name: "amana-locale",
+      name: "agropush-locale",
     },
   ),
 );

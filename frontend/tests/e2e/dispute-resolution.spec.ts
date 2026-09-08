@@ -19,7 +19,7 @@ function testJwt(walletAddress: string) {
 async function seedMediatorWallet(page: Page) {
   await page.addInitScript(
     ({ token, addr }) => {
-      window.sessionStorage.setItem('amana_jwt', token);
+      window.sessionStorage.setItem('agropush_jwt', token);
       const freighter = {
         isConnected: async () => ({ isConnected: true }),
         isAllowed: async () => ({ isAllowed: true }),

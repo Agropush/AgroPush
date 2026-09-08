@@ -28,7 +28,7 @@ export const useUIStore = create<UIState>()(
       resetDefaults: () => set(defaultState),
     }),
     {
-      name: "amana-ui-storage",
+      name: "agropush-ui-storage",
     },
   ),
 );

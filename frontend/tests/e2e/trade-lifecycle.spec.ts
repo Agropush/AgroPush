@@ -18,7 +18,7 @@ function testJwt(walletAddress: string) {
 async function seedAuthenticatedWallet(page: Page, address = BUYER_ADDRESS) {
   await page.addInitScript(
     ({ token, addr }) => {
-      window.sessionStorage.setItem('amana_jwt', token);
+      window.sessionStorage.setItem('agropush_jwt', token);
       const freighter = {
         isConnected: async () => ({ isConnected: true }),
         isAllowed: async () => ({ isAllowed: true }),
