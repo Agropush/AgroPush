@@ -14,21 +14,15 @@ export function getDictionary(locale: Locale): Record<string, string> {
 export type T = Record<string, string>;
 
 /**
- * Simple dot-path lookup for nested translation keys.
- * Supports up to 4 levels of nesting.
+ * Flat-key lookup for translation dictionaries (e.g. "nav.dashboard" is a
+ * single key in the dictionary, not a nested path).
  */
 export function t(
   dict: T,
   key: string,
   params?: Record<string, string | number>,
 ): string {
-  const parts = key.split(".");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let value: any = dict;
-  for (const part of parts) {
-    if (value == null || typeof value !== "object") return key;
-    value = value[part];
-  }
+  const value = dict[key];
   if (typeof value !== "string") return key;
   if (!params) return value;
   return value.replace(/\{(\w+)\}/g, (_: string, name: string) =>
