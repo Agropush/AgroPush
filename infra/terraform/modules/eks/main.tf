@@ -161,7 +161,7 @@ resource "aws_eks_node_group" "this" {
 
   taint {
     key    = "dedicated"
-    value  = "amana"
+    value  = "agropush"
     effect = "NO_SCHEDULE"
   }
 
