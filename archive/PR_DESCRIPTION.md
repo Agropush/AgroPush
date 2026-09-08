@@ -53,10 +53,10 @@ None intended. Public API contracts are unchanged.
 
 ## Related issues
 
-Closes KingFRANKHOOD/Amana#467  
-Closes KingFRANKHOOD/Amana#469  
-Closes KingFRANKHOOD/Amana#472  
-Closes KingFRANKHOOD/Amana#480
+Closes KingFRANKHOOD/AgroPush#467  
+Closes KingFRANKHOOD/AgroPush#469  
+Closes KingFRANKHOOD/AgroPush#472  
+Closes KingFRANKHOOD/AgroPush#480
 
 ## Checklist
 

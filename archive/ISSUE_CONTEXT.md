@@ -1,6 +1,6 @@
 # GitHub Issues to Resolve
 
-**Upstream:** KingFRANKHOOD/Amana
+**Upstream:** KingFRANKHOOD/AgroPush
 **Issues:** #467, #469, #472, #480
 **Generated:** 2026-04-27T21:06:51.574Z
 
@@ -59,15 +59,15 @@ STEP 5: TESTING
 
 STEP 6: PR OUTPUT
 Generate commit messages per issue and update undefined with a complete PR description:
-Closes KingFRANKHOOD/Amana#467
-Closes KingFRANKHOOD/Amana#469
-Closes KingFRANKHOOD/Amana#472
-Closes KingFRANKHOOD/Amana#480
+Closes KingFRANKHOOD/AgroPush#467
+Closes KingFRANKHOOD/AgroPush#469
+Closes KingFRANKHOOD/AgroPush#472
+Closes KingFRANKHOOD/AgroPush#480
 
 Additional mandatory rules:
 - Never include "Made with Cursor" or any tool/vendor footer in commit message or PR description.
 - Use Conventional Commits style subjects that describe work done (not only issue number).
-- Ensure every issue has a correct closing tag in PR description, for example: Closes KingFRANKHOOD/Amana#<issue-number>.
+- Ensure every issue has a correct closing tag in PR description, for example: Closes KingFRANKHOOD/AgroPush#<issue-number>.
 
 Important:
 If any issue is ambiguous, ask for clarification BEFORE implementing.
@@ -78,7 +78,7 @@ If any issue is ambiguous, ask for clarification BEFORE implementing.
 ## 📋 ISSUE DETAILS
 
 ### Issue #467: CI-002 - Add frontend visual tests to required status gate
-**URL:** https://github.com/KingFRANKHOOD/Amana/issues/467
+**URL:** https://github.com/KingFRANKHOOD/AgroPush/issues/467
 **Labels:** Stellar Wave
 
 ## Summary
@@ -101,7 +101,7 @@ Visual regressions can pass unnoticed when visual jobs are not part of the final
 ---
 
 ### Issue #469: TEST-001 - Standardize backend tests on one framework (Jest or Vitest)
-**URL:** https://github.com/KingFRANKHOOD/Amana/issues/469
+**URL:** https://github.com/KingFRANKHOOD/AgroPush/issues/469
 **Labels:** Stellar Wave
 
 ## Summary
@@ -124,7 +124,7 @@ Mixing Jest and Vitest in backend tests causes instability and maintenance overh
 ---
 
 ### Issue #472: DB-002 - Strengthen destructive migration scanner patterns
-**URL:** https://github.com/KingFRANKHOOD/Amana/issues/472
+**URL:** https://github.com/KingFRANKHOOD/AgroPush/issues/472
 **Labels:** Stellar Wave
 
 ## Summary
@@ -147,7 +147,7 @@ Limited detection patterns can miss high-risk schema changes.
 ---
 
 ### Issue #480: QA-001 - Create flaky-test quarantine and retry policy
-**URL:** https://github.com/KingFRANKHOOD/Amana/issues/480
+**URL:** https://github.com/KingFRANKHOOD/AgroPush/issues/480
 **Labels:** Stellar Wave
 
 ## Summary
@@ -176,8 +176,8 @@ fix: resolve issues #467, #469, #472, #480
 - #472: DB-002 - Strengthen destructive migration scanner patterns
 - #480: QA-001 - Flaky-test quarantine and bounded CI retries
 
-Closes KingFRANKHOOD/Amana#467
-Closes KingFRANKHOOD/Amana#469
-Closes KingFRANKHOOD/Amana#472
-Closes KingFRANKHOOD/Amana#480
+Closes KingFRANKHOOD/AgroPush#467
+Closes KingFRANKHOOD/AgroPush#469
+Closes KingFRANKHOOD/AgroPush#472
+Closes KingFRANKHOOD/AgroPush#480
 ```

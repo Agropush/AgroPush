@@ -2,7 +2,7 @@
 
 ## Overview
 
-This PR implements four backend security and reliability hardening issues for the Amana platform:
+This PR implements four backend security and reliability hardening issues for the AgroPush platform:
 
 - **Issue #236**: Resilient chain event outbox with retry/backoff and dead-letter handling
 - **Issue #419**: Evidence upload verification with MIME sniffing and pluggable malware scanner hooks
